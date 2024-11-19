@@ -1,0 +1,41 @@
+{
+    "debug.onTaskErrors": "debugAnyway",
+    "editor.codeActionsOnSave": {},
+    "files.autoSave": "afterDelay",
+    "makefile.makePath": "C:\\Program Files\\mingw64\\bin\\mingw32-make",
+    "security.workspace.trust.untrustedFiles": "open",
+    "EIDE.Cppcheck.ExecutablePath": "${userRoot}/.eide/toolspcheckpcheck.exe",
+    "EIDE.ARM.GCC.InstallDirectory": "${userRoot}/.eide/tools/gcc_arm",
+    "explorer.confirmDragAndDrop": false,
+    "EIDE.OpenOCD.ExePath": "${userRoot}/.eide/tools/openocd_7a1adfbec_mingw32/bin/openocd.exe",
+    "terminal.integrated.profiles.windows": {
+        "mysys2-mingw64": {
+            "path": "cmd.exe", // 意思是使用cmd作为父进程启动终端
+            "args": [
+                "/c",
+                "C:\\msys64\\msys2_shell.cmd -defterm -mingw64 -no-start -here"
+            ]
+            // msys2_shell.cmd在msys的安装目录下，这里要改为你自己的目录
+        }
+    },
+    "cortex-debug.armToolchainPath": "D:\\Arm-GNU-Toolchian\\bin",
+    "cortex-debug.gdbPath": "D:\\Arm-GNU-Toolchian\\bin\\arm-none-eabi-gdb.exe",
+    "cortex-debug.JLinkGDBServerPath": "D:\\J-link\\JLinkGDBServerCL.exe",
+    "cortex-debug.openocdPath": "C:\\msys64\\mingw64\\bin\\openocd.exe",
+    "cmake.showOptionsMovedNotification": false,
+    "git.autofetch": true,
+    "C_Cpp.errorSquiggles": "enabled",
+    "window.zoomLevel": -1,
+    "stm32-for-vscode.openOCDPath": "C:\\USERS\\CHEN SHI QUAN\\.EIDE\\TOOLS\\OPENOCD_7A1ADFBEC_MINGW32\\BIN\\OPENOCD.EXE",
+    "stm32-for-vscode.makePath": "C:\\USERS\\CHEN SHI QUAN\\.EIDE\\BIN\\BUILDER\\MSYS\\BIN\\MAKE.EXE",
+    "stm32-for-vscode.armToolchainPath": "C:\\USERS\\CHEN SHI QUAN\\.EIDE\\TOOLS\\GCC_ARM\\BIN",
+    "Lingma.LocalStoragePath": "C:\\Users\\Chen Shi Quan\\.lingma",
+    "editor.formatOnSave": true,
+    "cmake.pinnedCommands": [
+        "workbench.action.tasks.configureTaskRunner",
+        "workbench.action.tasks.runTask"
+    ],
+    "chatgpt.lang": "cn",
+    "editor.fontLigatures": false,
+    "makefile.configureOnOpen": true
+}
