@@ -7,9 +7,5 @@
         "usbd_conf.h": "c",
         "usbd_desc.h": "c",
         "usbd_cdc_if.h": "c"
-    },
-    "cortex-debug.armToolchainPath": "E:\\Environmentconfiguration\\Arm-GNU-Toolchian\\bin",
-    "cortex-debug.openocdPath": "E:\\Environmentconfiguration\\OpenOCD\\bin\\openocd.exe",
-    "cmake.configureOnOpen": true,
-    "cortex-debug.variableUseNaturalFormat": false,
+    }
 }
