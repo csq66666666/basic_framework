@@ -21,7 +21,7 @@
 // #define CHASSIS_BOARD //底盘板
 // #define GIMBAL_BOARD  //云台板
 
-#define VISION_USE_VCP  // 使用虚拟串口发送视觉数据
+#define VISION_USE_VCP // 使用虚拟串口发送视觉数据
 // #define VISION_USE_UART // 使用串口发送视觉数据
 
 /* 机器人重要参数定义,注意根据不同机器人进行修改,浮点数需要以.0或f结尾,无符号以u结尾 */
@@ -40,7 +40,7 @@
 #define TRACK_WIDTH 300             // 横向轮距(左右平移方向)
 #define CENTER_GIMBAL_OFFSET_X 0    // 云台旋转中心距底盘几何中心的距离,前后方向,云台位于正中心时默认设为0
 #define CENTER_GIMBAL_OFFSET_Y 0    // 云台旋转中心距底盘几何中心的距离,左右方向,云台位于正中心时默认设为0
-#define RADIUS_WHEEL 60             // 轮子半径
+#define RADIUS_WHEEL 77             // 轮子半径
 #define REDUCTION_RATIO_WHEEL 19.0f // 电机减速比,因为编码器量测的是转子的速度而不是输出轴的速度故需进行转换
 
 #define GYRO2GIMBAL_DIR_YAW 1   // 陀螺仪数据相较于云台的yaw的方向,1为相同,-1为相反
@@ -192,7 +192,6 @@ typedef struct
     Enemy_Color_e enemy_color;   // 0 for blue, 1 for red
 
 } Chassis_Upload_Data_s;
-
 
 typedef struct
 {
