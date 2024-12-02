@@ -21,7 +21,7 @@
 // #define CHASSIS_BOARD //底盘板
 // #define GIMBAL_BOARD  //云台板
 
-#define VISION_USE_VCP  // 使用虚拟串口发送视觉数据
+#define VISION_USE_VCP // 使用虚拟串口发送视觉数据
 // #define VISION_USE_UART // 使用串口发送视觉数据
 
 /* 机器人重要参数定义,注意根据不同机器人进行修改,浮点数需要以.0或f结尾,无符号以u结尾 */
@@ -86,6 +86,7 @@ typedef enum
     CHASSIS_ROTATE,            // 小陀螺模式
     CHASSIS_NO_FOLLOW,         // 不跟随，允许全向平移
     CHASSIS_FOLLOW_GIMBAL_YAW, // 跟随模式，底盘叠加角度环控制
+    CHASSIS_FREE,
 } chassis_mode_e;
 
 // 云台模式设置
@@ -192,7 +193,6 @@ typedef struct
     Enemy_Color_e enemy_color;   // 0 for blue, 1 for red
 
 } Chassis_Upload_Data_s;
-
 
 typedef struct
 {
