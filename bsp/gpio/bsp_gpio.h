@@ -50,6 +50,17 @@ typedef struct
 } GPIO_Init_Config_s;
 
 /**
+ * @brief 若该端口已被复用或未被配置为GPIO，请定义此结构体来对GPIO初始化
+ *
+ */
+typedef struct
+{
+    GPIO_InitTypeDef GPIO_InitStruct; // GPIO初始化结构体
+    GPIO_TypeDef *GPIOx;              // GPIOA,GPIOB,GPIOC...
+    GPIO_PinState pin_init_state;     // 初始引脚状态,Set,Reset
+} GPIO_Init_s;
+
+/**
  * @brief 注册GPIO实例
  *
  * @param GPIO_config
@@ -58,7 +69,14 @@ typedef struct
 GPIOInstance *GPIORegister(GPIO_Init_Config_s *GPIO_config);
 
 /**
- * @brief GPIO API,切换GPIO电平
+ * @brief GPIO API,初始化GPIO端口
+ *        若要使用的端口已被复用或未被配置为GPIO，可使用此函数将端口直接初始化为GPIO
+ * @param GPIO_Init
+ */
+void GPIOInit(GPIO_Init_s *GPIO_Init);
+
+/**
+ * @brief 切换GPIO电平
  *
  * @param _instance
  */

@@ -145,11 +145,12 @@ modules/referee/rm_referee.c \
 modules/referee/referee_UI.c \
 modules/referee/referee_task.c \
 modules/remote/remote_control.c \
-modules/super_cap/super_cap.c \
 modules/can_comm/can_comm.c \
 modules/message_center/message_center.c \
 modules/daemon/daemon.c \
 modules/alarm/buzzer.c \
+modules/self_controller/self_controller.c \
+modules/elec_switch/elec_switch.c \
 application/gimbal/gimbal.c \
 application/chassis/chassis.c \
 application/shoot/shoot.c \
@@ -260,11 +261,12 @@ C_INCLUDES =  \
 -Imodules/oled \
 -Imodules/referee \
 -Imodules/remote \
--Imodules/super_cap \
 -Imodules/can_comm \
 -Imodules/message_center \
 -Imodules/daemon \
 -Imodules/alarm \
+-Imodules/self_controller \
+-Imodules/elec_switch \
 -Imodules  \
 -IMiddlewares/ST/ARM/DSP/Inc
 

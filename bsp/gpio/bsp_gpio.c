@@ -45,6 +45,14 @@ GPIOInstance *GPIORegister(GPIO_Init_Config_s *GPIO_config)
 // ----------------- GPIO API -----------------
 // 都是对HAL的形式上的封装,后续考虑增加GPIO state变量,可以直接读取state
 
+void GPIOInit(GPIO_Init_s *GPIO_Init)
+{
+    /*Configure GPIO pin Output Level */
+    HAL_GPIO_WritePin(GPIO_Init->GPIOx, GPIO_Init->GPIO_InitStruct.Pin, GPIO_Init->pin_init_state);
+    /*Configure GPIO pin : PtPin */
+    HAL_GPIO_Init(GPIO_Init->GPIOx, &GPIO_Init->GPIO_InitStruct);
+}
+
 void GPIOToggel(GPIOInstance *_instance)
 {
     HAL_GPIO_TogglePin(_instance->GPIOx, _instance->GPIO_Pin);
