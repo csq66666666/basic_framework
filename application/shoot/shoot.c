@@ -1,5 +1,7 @@
-#include "shoot.h"
 #include "robot_def.h"
+
+#ifndef ROBOT_ENGINEER
+#include "shoot.h"
 
 #include "dji_motor.h"
 #include "message_center.h"
@@ -211,3 +213,4 @@ void ShootTask()
     // 反馈数据,目前暂时没有要设定的反馈数据,后续可能增加应用离线监测以及卡弹反馈
     PubPushMessage(shoot_pub, (void *)&shoot_feedback_data);
 }
+#endif

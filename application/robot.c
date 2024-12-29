@@ -14,8 +14,19 @@
 #endif
 
 #if defined(ONE_BOARD) || defined(GIMBAL_BOARD)
+
+#if defined(ROBOT_BALANCE_INFANTRY) || defined(ROBOT_INFANTRY) || defined(ROBOT_SENTRY) || defined(ROBOT_HERO)
 #include "gimbal.h"
+#endif
+
+#ifndef ROBOT_ENGINEER
 #include "shoot.h"
+#endif
+
+#ifdef ROBOT_ENGINEER
+#include "upper.h"
+#endif
+
 #include "robot_cmd.h"
 #endif
 
@@ -31,8 +42,17 @@ void RobotInit()
 
 #if defined(ONE_BOARD) || defined(GIMBAL_BOARD)
     RobotCMDInit();
-    GimbalInit();
-    ShootInit();
+    #if defined(ROBOT_BALANCE_INFANTRY) || defined(ROBOT_INFANTRY) || defined(ROBOT_SENTRY) || defined(ROBOT_HERO)
+        GimbalInit();
+    #endif
+
+    #ifndef ROBOT_ENGINEER
+        ShootInit();
+    #endif
+
+    #ifdef ROBOT_ENGINEER
+        Upper_Init();
+    #endif
 #endif
 
 #if defined(ONE_BOARD) || defined(CHASSIS_BOARD)
@@ -49,8 +69,17 @@ void RobotTask()
 {
 #if defined(ONE_BOARD) || defined(GIMBAL_BOARD)
     RobotCMDTask();
-    GimbalTask();
-    ShootTask();
+    #if defined(ROBOT_BALANCE_INFANTRY) || defined(ROBOT_INFANTRY) || defined(ROBOT_SENTRY) || defined(ROBOT_HERO)
+        GimbalTask();
+    #endif
+    
+    #ifndef ROBOT_ENGINEER
+        ShootTask();
+    #endif
+
+    #ifdef ROBOT_ENGINEER
+        Upper_Task();
+    #endif
 #endif
 
 #if defined(ONE_BOARD) || defined(CHASSIS_BOARD)

@@ -1,5 +1,5 @@
-#ifndef _BSP_LOG_H
-#define _BSP_LOG_H
+#ifndef BSP_LOG_H
+#define BSP_LOG_H
 
 #include "SEGGER_RTT.h"
 #include "SEGGER_RTT_Conf.h"

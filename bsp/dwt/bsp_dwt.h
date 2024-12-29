@@ -11,8 +11,8 @@
  *
  ******************************************************************************
  */
-#ifndef _BSP_DWT_H
-#define _BSP_DWT_H
+#ifndef BSP_DWT_H
+#define BSP_DWT_H
 
 #include "main.h"
 #include "stdint.h"

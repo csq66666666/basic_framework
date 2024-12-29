@@ -1,5 +1,5 @@
-#ifndef BSP_INIT_h
-#define BSP_INIT_h
+#ifndef BSP_INIT_H
+#define BSP_INIT_H
 
 #include "bsp_init.h"
 #include "bsp_log.h"

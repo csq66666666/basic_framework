@@ -1,5 +1,5 @@
-#ifndef _BSP_FLASH_H
-#define _BSP_FLASH_H
+#ifndef BSP_FLASH_H
+#define BSP_FLASH_H
 #include "main.h"
 
 /* Base address of the Flash sectors */

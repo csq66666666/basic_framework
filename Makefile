@@ -150,9 +150,11 @@ modules/can_comm/can_comm.c \
 modules/message_center/message_center.c \
 modules/daemon/daemon.c \
 modules/alarm/buzzer.c \
+modules/elec_switch/elec_switch.c \
 application/gimbal/gimbal.c \
 application/chassis/chassis.c \
 application/shoot/shoot.c \
+application/upper/upper.c \
 application/cmd/robot_cmd.c \
 application/robot.c
 
@@ -231,6 +233,7 @@ C_INCLUDES =  \
 -Iapplication/chassis \
 -Iapplication/shoot \
 -Iapplication/gimbal \
+-Iapplication/upper \
 -Iapplication/cmd \
 -Iapplication \
 -Ibsp/dwt \
@@ -265,7 +268,8 @@ C_INCLUDES =  \
 -Imodules/message_center \
 -Imodules/daemon \
 -Imodules/alarm \
--Imodules  \
+-Imodules/elec_switch \
+-Imodules \
 -IMiddlewares/ST/ARM/DSP/Inc
 
 

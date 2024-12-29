@@ -1,3 +1,6 @@
+#ifndef BSP_IIC_H
+#define BSP_IIC_H
+
 #include "i2c.h"
 #include "stdint.h"
 
@@ -104,3 +107,5 @@ void IICReceive(IICInstance *iic, uint8_t *data, uint16_t size, IIC_Seq_Mode_e m
  * @param mem8bit_flag 从机内存地址是否为8位
  */
 void IICAccessMem(IICInstance *iic, uint16_t mem_addr, uint8_t *data, uint16_t size, IIC_Mem_Mode_e mode, uint8_t mem8bit_flag);
+
+#endif
