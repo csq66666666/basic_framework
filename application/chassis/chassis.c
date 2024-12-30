@@ -316,7 +316,7 @@ static void ChassisModeControl()
         DJIMotorStop(motor_rb);
         break;
     case CHASSIS_NORMAL: // 正常行进
-        cos_theta = -1;
+        cos_theta = 1;
         sin_theta = 0;
         break;
     case CHASSIS_NO_MOVE: // 锁定底盘
