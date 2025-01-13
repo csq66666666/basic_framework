@@ -153,6 +153,7 @@ modules/self_controller/self_controller.c \
 modules/elec_switch/elec_switch.c \
 application/gimbal/gimbal.c \
 application/chassis/chassis.c \
+application/upper/upper.c \
 application/shoot/shoot.c \
 application/cmd/robot_cmd.c \
 application/robot.c
@@ -230,6 +231,7 @@ C_INCLUDES =  \
 -IMiddlewares/Third_Party/SEGGER/RTT \
 -IMiddlewares/Third_Party/SEGGER/Config \
 -Iapplication/chassis \
+-Iapplication/upper \
 -Iapplication/shoot \
 -Iapplication/gimbal \
 -Iapplication/cmd \

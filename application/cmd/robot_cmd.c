@@ -1,6 +1,7 @@
 // app
 #include "robot_def.h"
 #include "robot_cmd.h"
+#include "upper.h"
 // module
 #include "remote_control.h"
 #include "ins_task.h"
@@ -44,6 +45,16 @@ static Subscriber_t *shoot_feed_sub;         // 发射反馈信息订阅者
 static Shoot_Ctrl_Cmd_s shoot_cmd_send;      // 传递给发射的控制信息
 static Shoot_Upload_Data_s shoot_fetch_data; // 从发射获取的反馈信息
 
+static Publisher_t *upper_cmd_pub;           // 上层机构控制消息发布者
+static Subscriber_t *upper_feed_sub;         // 上层机构反馈信息订阅者
+static Upper_Ctrl_Cmd_s upper_cmd_send;      // 传递给上层机构的控制信息
+static Upper_Upload_Data_s upper_fetch_data; // 从上层机构获取的反馈信息
+
+static TickType_t dial_time_start; // 计时开始时的时间
+static TickType_t dial_time_now;   // 当前时刻时间
+static uint8_t dial_press_flag;    // 拨轮按下标志位
+static upper_mode_e upper_last_mode;
+
 static Robot_Status_e robot_state; // 机器人整体工作状态
 
 BMI088Instance *bmi088_test; // 云台IMU
@@ -58,6 +69,8 @@ void RobotCMDInit()
     gimbal_feed_sub = SubRegister("gimbal_feed", sizeof(Gimbal_Upload_Data_s));
     shoot_cmd_pub = PubRegister("shoot_cmd", sizeof(Shoot_Ctrl_Cmd_s));
     shoot_feed_sub = SubRegister("shoot_feed", sizeof(Shoot_Upload_Data_s));
+    upper_cmd_pub = PubRegister("upper_cmd", sizeof(Upper_Ctrl_Cmd_s));
+    upper_feed_sub = SubRegister("upper_feed", sizeof(Upper_Upload_Data_s));
 
 #ifdef ONE_BOARD // 双板兼容
     chassis_cmd_pub = PubRegister("chassis_cmd", sizeof(Chassis_Ctrl_Cmd_s));
@@ -79,7 +92,20 @@ void RobotCMDInit()
 
     robot_state = ROBOT_READY; // 启动时机器人进入工作模式,后续加入所有应用初始化完成之后再进入
 }
-
+/**
+ * @brief 将当前位姿更新到发送端，使后续操作在当前位姿上执行
+ *
+ */
+static void CmdRecvUpdate()
+{
+    upper_cmd_send.joint_data.yaw1= upper_fetch_data.joint_data.yaw1;
+    upper_cmd_send.joint_data.yaw2 = upper_fetch_data.joint_data.yaw2;
+    upper_cmd_send.joint_data.yaw3 = upper_fetch_data.joint_data.yaw3;
+    upper_cmd_send.joint_data.roll_differ = upper_fetch_data.joint_data.roll_differ;
+    upper_cmd_send.joint_data.pitch_differ = upper_fetch_data.joint_data.pitch_differ;
+    upper_cmd_send.joint_data.lift_dist = upper_fetch_data.joint_data.lift_dist;
+  
+}
 /**
  * @brief 控制输入为遥控器(调试时)的模式和控制量设置
  *
@@ -87,7 +113,8 @@ void RobotCMDInit()
 static void RemoteControlSet()
 {
     chassis_cmd_send.chassis_mode = CHASSIS_NO_MOVE;
-
+ if (upper_cmd_send.upper_mode != UPPER_CALI)
+ {
     if (switch_is_up(rc_data[TEMP].rc.switch_left)) // 左侧开关状态为[上]
     {
         // 控制底盘运行模式
@@ -96,11 +123,27 @@ static void RemoteControlSet()
             chassis_cmd_send.chassis_mode = CHASSIS_NORMAL;
         }
 
-
         // 底盘参数,系数需要调整
         chassis_cmd_send.vx = 40.0f * (float)rc_data[TEMP].rc.rocker_r_; // _水平方向
         chassis_cmd_send.vy = 40.0f * (float)rc_data[TEMP].rc.rocker_r1; // |竖直方向
         chassis_cmd_send.wz = -5.0f * (float)rc_data[TEMP].rc.rocker_l_; // ↺旋转方向 遥控器摇杆从左往右值增大,与旋转方向相反，所以取相反数
+    }
+    else if (switch_is_mid(rc_data[TEMP].rc.switch_left)) // 左侧开关状态为[中]
+    {  
+        upper_cmd_send.upper_mode = UPPER_SINGLE_MOTOR;
+
+     if (switch_is_up(rc_data[TEMP].rc.switch_right)) // 右侧开关状态[上] ，抬升+yaw1+yaw2
+       {
+        upper_cmd_send.joint_data.yaw1 += 0.001f * (float)rc_data[TEMP].rc.rocker_l_;
+        upper_cmd_send.joint_data.lift_dist += 0.001f * (float)rc_data[TEMP].rc.rocker_l1;
+        upper_cmd_send.joint_data.yaw2 += 0.001f * (float)rc_data[TEMP].rc.rocker_r_;
+       }
+       else if (switch_is_mid(rc_data[TEMP].rc.switch_right)) // 右侧开关状态[中] ，yaw3+差速器
+       {
+        upper_cmd_send.joint_data.yaw3 += 0.001f * (float)rc_data[TEMP].rc.rocker_l_;
+        upper_cmd_send.joint_data.roll_differ += 0.001f * (float)rc_data[TEMP].rc.rocker_r_;
+        upper_cmd_send.joint_data.pitch_differ += 0.001f * (float)rc_data[TEMP].rc.rocker_r1;
+       }
     }
 
     // 真空泵控制,拨轮向上打为负,向下为正
@@ -111,6 +154,34 @@ static void RemoteControlSet()
     else if (rc_data[TEMP].rc.dial > 100)
     {
         chassis_cmd_send.pump_mode = VAVLVE_ALL_CLOSE;
+    }
+    // 拨轮下拨2s机械臂初始化
+    if (rc_data[TEMP].rc.dial > 100) // 拨轮下拨
+    {
+        if (!dial_press_flag)
+        {
+            dial_press_flag = 1;
+            dial_time_start = xTaskGetTickCount();
+        }
+
+        if (dial_press_flag == 1)
+        {
+            dial_time_now = xTaskGetTickCount();
+
+            if ((dial_time_now - dial_time_start) > 2000)
+            {
+                upper_cmd_send.upper_mode = UPPER_CALI;
+            }
+        }
+    }
+ }
+ else
+    {
+        if (upper_fetch_data.action_step == 0)
+        {
+            upper_cmd_send.upper_mode = UPPER_NO_MOVE;
+            CmdRecvUpdate();
+        }
     }
 }
 
@@ -140,6 +211,7 @@ static void EmergencyHandler()
         shoot_cmd_send.shoot_mode = SHOOT_OFF;
         shoot_cmd_send.friction_mode = FRICTION_OFF;
         shoot_cmd_send.load_mode = LOAD_STOP;
+        upper_cmd_send.upper_mode = UPPER_ZERO_FORCE;
         LOGERROR("[CMD] emergency stop!");
     }
     // 遥控器右侧开关为[上],恢复正常运行
@@ -157,7 +229,7 @@ void RobotCMDTask()
     chassis_fetch_data = *(Chassis_Upload_Data_s *)CANCommGet(cmd_can_comm);
 #endif // GIMBAL_BOARD
     SubGetMessage(shoot_feed_sub, &shoot_fetch_data);
-    SubGetMessage(gimbal_feed_sub, &gimbal_fetch_data);
+   SubGetMessage(upper_feed_sub, &upper_fetch_data);
 
     // 根据遥控器左侧开关,确定当前使用的控制模式为遥控器调试还是键鼠
     if (switch_is_down(rc_data[TEMP].rc.switch_left) && switch_is_mid(rc_data[TEMP].rc.switch_right))
@@ -167,6 +239,12 @@ void RobotCMDTask()
 
     EmergencyHandler(); // 处理模块离线和遥控器急停等紧急情况
 
+    UpperJointConstrain(&upper_cmd_send.joint_data);
+    if (upper_last_mode != upper_cmd_send.upper_mode)
+    {
+        CmdRecvUpdate();
+    }
+    upper_last_mode = upper_cmd_send.upper_mode;
     // 设置视觉发送数据,还需增加加速度和角速度数据
     // VisionSetFlag(chassis_fetch_data.enemy_color,,chassis_fetch_data.bullet_speed)
 
@@ -179,5 +257,5 @@ void RobotCMDTask()
     CANCommSend(cmd_can_comm, (void *)&chassis_cmd_send);
 #endif // GIMBAL_BOARD
     PubPushMessage(shoot_cmd_pub, (void *)&shoot_cmd_send);
-    PubPushMessage(gimbal_cmd_pub, (void *)&gimbal_cmd_send);
+    PubPushMessage(upper_cmd_pub, (void *)&upper_cmd_send);
 }

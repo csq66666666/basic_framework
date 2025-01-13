@@ -26,6 +26,56 @@
 // #define VISION_USE_UART // 使用串口发送视觉数据
 
 /* 机器人重要参数定义,注意根据不同机器人进行修改,浮点数需要以.0或f结尾,无符号以u结尾 */
+// 机械臂参数
+#define CALI_STEP_TIME 100                                              // 校准时间
+#define ACTION_STEP_TIME 50                                             // 动作完成判断时间
+#define yaw1_MAX 110.0f                                                 // yaw1最大角度(待修改)
+#define yaw1_MIN -110.0f                                                // yaw1轴最小角度(待修改)
+
+#define yaw2_MAX 110.0f                                                 // yaw2最大角度(待修改)
+#define yaw2_MIN -110.0f                                                // yaw2轴最小角度(待修改)
+
+#define yaw3_MAX 110.0f                                                 // yaw3最大角度(待修改)
+#define yaw3_MIN -110.0f                                                // yaw3轴最小角度(待修改)
+
+#define PITCH_DIFFER_MAX 90.0f                                          // pitch_differ轴最大角度
+#define PITCH_DIFFER_MIN -90.0f                                         // pitch_differ轴最小角度
+
+#define GEAR_RATION_YAW1 (14.0f / 54.0f)                                 // yaw1轴齿轮比(待修改)
+#define GEAR_RATION_YAW2 (14.0f / 54.0f)                                 // yaw3轴齿轮比（待修改）
+#define GEAR_RATION_YAW3 (14.0f / 54.0f)                                 // yaw3轴齿轮比（待修改）
+
+
+#define GEAR_RATION_DIFFER (30.0f / 50.0f)                              // 差速器太阳齿轮:行星齿轮(待修改)
+#define REDUCTION_RATIO_YAW1 19.0f                                      // yaw1轴电机减速比
+#define REDUCTION_RATIO_YAW2 19.0f                                      // yaw2轴电机减速比
+#define REDUCTION_RATIO_YAW3 36.0f                                      // yaw3轴电机减速比
+
+#define REDUCTION_RATIO_DIFFER 36.0f                                    // 差速器电机减速比
+
+#define ROTOR_2_SHAFT_YAW1 (GEAR_RATION_YAW1 / REDUCTION_RATIO_YAW1)        // 电机转子角度转换到yaw1轴角度
+#define ROTOR_2_SHAFT_YAW2 (GEAR_RATION_YAW2 / REDUCTION_RATIO_YAW2)        // 电机转子角度转换到yaw2轴角度
+#define ROTOR_2_SHAFT_YAW3 (GEAR_RATION_YAW3 / REDUCTION_RATIO_YAW3)        // 电机转子角度转换到yaw3轴角度
+
+#define ROTOR_2_SHAFT_ROLL_DIFFER (1.0f / REDUCTION_RATIO_DIFFER)       // 电机转子角度转换到差速器roll轴角度
+#define ROTOR_2_SHAFT_PITCH_DIFFER (1.0f / REDUCTION_RATIO_DIFFER)      // 电机转子角度转换到差速器pitch轴角度
+
+#define SHAFT_2_ROTOR_YAW1 (REDUCTION_RATIO_YAW1 / GEAR_RATION_YAW1)       // yaw1轴角度转换到电机转子角度
+#define SHAFT_2_ROTOR_YAW2 (REDUCTION_RATIO_YAW2 / GEAR_RATION_YAW2)       // yaw2轴角度转换到电机转子角度
+#define SHAFT_2_ROTOR_YAW3 (REDUCTION_RATIO_YAW3 / GEAR_RATION_YAW3)       // yaw3轴角度转换到电机转子角度
+
+#define SHAFT_2_ROTOR_ROLL_DIFFER REDUCTION_RATIO_DIFFER                // 差速器roll轴角度转换到电机转子角度
+#define SHAFT_2_ROTOR_PITCH_DIFFER REDUCTION_RATIO_DIFFER               // 差速器pitch轴角度转换到电机转子角度
+// 滑移参数
+#define LIFT_GEAR_R 23.3f                                             // 抬升齿轮半径(待修改)
+
+#define LIFT_MAX_DIST 529.0f                                          // 抬升最大距离(待修改)
+
+#define LIFT_DIST_2_ANGLE (360.0f * 27.0f / (2.0f * PI * 23.3f))      // 抬升距离转电机角度(待修改)
+
+#define SAFE_DIST 10.0f                                               // 安全距离(待修改)
+#define LIFT_MAX_SAFE_DIST (LIFT_MAX_DIST - SAFE_DIST)                // 抬升最大安全距离(待修改)
+
 // 云台参数
 #define YAW_CHASSIS_ALIGN_ECD 2711  // 云台和底盘对齐指向相同方向时的电机编码器值,若对云台有机械改动需要修改
 #define YAW_ECD_GREATER_THAN_4096 0 // ALIGN_ECD值是否大于4096,是为1,否为0;用于计算云台偏转角度
@@ -104,6 +154,22 @@ CHASSIS_FOLLOW_GIMBAL_YAW,
 
 } chassis_mode_e;
 
+//机械臂部分
+typedef enum
+{
+    UPPER_ZERO_FORCE = 0,          // 电流零输入
+    UPPER_NO_MOVE,                 // 锁定上层机构
+    UPPER_CALI,                    // 校准模式
+    UPPER_SINGLE_MOTOR,            // 单电机控制模式
+    UPPER_SLIVER_MINING,           // 开采银矿模式
+    UPPER_THREE_SLIVER_MINING,     // 一键开采三个银矿模式
+    UPPER_GET_THREE_SLIVER_MINING, // 一键衔接三个银矿模式
+    UPPER_GLOD_MINING,             // 开采金矿模式
+    UPPER_GET_GLOD_MINING,         // 衔接金矿模式
+    UPPER_GROUND_MINING,           // 开采地面矿模式
+    UPPER_EXCHANGE,                // 兑换模式
+} upper_mode_e;
+
 // 云台模式设置
 typedef enum
 {
@@ -111,6 +177,7 @@ typedef enum
     GIMBAL_FREE_MODE,      // 云台自由运动模式,即与底盘分离(底盘此时应为NO_FOLLOW)反馈值为电机total_angle;似乎可以改为全部用IMU数据?
     GIMBAL_GYRO_MODE,      // 云台陀螺仪反馈模式,反馈值为陀螺仪pitch,total_yaw_angle,底盘可以为小陀螺和跟随模式
 } gimbal_mode_e;
+
 
 // 发射模式设置
 typedef enum
@@ -145,7 +212,18 @@ typedef struct
     float chassis_power_mx;
 } Chassis_Power_Data_s;
 
-/* ----------------CMD应用发布的控制数据,应当由gimbal/chassis/shoot订阅---------------- */
+/* -------------------------机器人控制数据类型定义-------------------------*/
+typedef struct
+{
+    float yaw1;
+    float yaw2;
+    float yaw3;
+    float pitch_differ;
+    float roll_differ;
+    float lift_dist;
+} Upper_Joint_Data_s;
+
+/* ----------------CMD应用发布的控制数据,应当由gimbal/chassis/shoot/upper订阅---------------- */
 /**
  * @brief 对于双板情况,遥控器和pc在云台,裁判系统在底盘
  *
@@ -164,6 +242,18 @@ typedef struct
     // upper_mode_e upper_mode;
     gimbal_mode_e gimbal_mode;
 } Chassis_Ctrl_Cmd_s;
+
+//upper发布的数据由upper订阅
+typedef struct
+{
+    Upper_Joint_Data_s joint_data; // 关节数据
+    Self_Cntlr_s ctrlr_data;       // 自定义控制器数据
+
+    uint8_t cfm_flag : 4;
+    uint8_t stop_flag : 1;
+    uint16_t getsliver_flag;
+    upper_mode_e upper_mode;
+} Upper_Ctrl_Cmd_s;
 
 // cmd发布的云台控制数据,由gimbal订阅
 typedef struct
@@ -187,7 +277,7 @@ typedef struct
     float shoot_rate; // 连续发射的射频,unit per s,发/秒
 } Shoot_Ctrl_Cmd_s;
 
-/* ----------------gimbal/shoot/chassis发布的反馈数据----------------*/
+/* ----------------gimbal/shoot/chassis/upper发布的反馈数据----------------*/
 /**
  * @brief 由cmd订阅,其他应用也可以根据需要获取.
  *
@@ -207,6 +297,13 @@ typedef struct
 
 } Chassis_Upload_Data_s;
 
+
+//机械臂反馈数据
+typedef struct
+{
+    Upper_Joint_Data_s joint_data; // 上层机构关节数据
+    uint8_t action_step;
+} Upper_Upload_Data_s;
 typedef struct
 {
     attitude_t gimbal_imu_data;

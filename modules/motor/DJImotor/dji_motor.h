@@ -40,6 +40,8 @@ typedef struct
 
     float total_angle;   // 总角度,注意方向
     int32_t total_round; // 总圈数,注意方向
+     uint8_t init_flag; // 记录初始角度标志位
+    float init_angle;  // 初始角度
 } DJI_Motor_Measure_s;
 
 /**

@@ -33,6 +33,7 @@ void RobotInit()
     RobotCMDInit();
     GimbalInit();
     ShootInit();
+    UpperInit();
 #endif
 
 #if defined(ONE_BOARD) || defined(CHASSIS_BOARD)
@@ -51,6 +52,7 @@ void RobotTask()
     RobotCMDTask();
     GimbalTask();
     ShootTask();
+    UpperTask();
 #endif
 
 #if defined(ONE_BOARD) || defined(CHASSIS_BOARD)
