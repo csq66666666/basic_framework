@@ -105,7 +105,8 @@ void ChassisInit()
     chassis_motor_config.controller_setting_init_config.motor_reverse_flag = MOTOR_DIRECTION_REVERSE;
     motor_rb = DJIMotorInit(&chassis_motor_config);
 
-    referee_data = UITaskInit(&huart6, &ui_data); // 裁判系统初始化,会同时初始化UI
+    // referee_data = UITaskInit(&huart1, &ui_data); // 裁判系统初始化,会同时初始化UI（注意自定义控制器使用了学生串口huart6，我们的裁判系统接口为huart1）
+    self_cntlr_data = SelfCntlrInit(&huart6);
 
     ElecSwitch_Init_Config_s valve_init_cofig = {
         .GPIOx = VALVE1_GPIO_Port,
@@ -188,7 +189,18 @@ static void ChassisOutput()
     DJIMotorSetRef(motor_lb, vt_lb);
     DJIMotorSetRef(motor_rb, vt_rb);
 }
-
+/**
+ * @brief 自定义接收
+ *
+ */
+static void FeedbackUpdate()
+{
+    chassis_feedback_data.ctrlr_data.yaw = 4.5f * self_cntlr_data->yaw;
+    chassis_feedback_data.ctrlr_data.pitch = self_cntlr_data->pitch;
+    chassis_feedback_data.ctrlr_data.roll = -self_cntlr_data->roll;
+    chassis_feedback_data.ctrlr_data.push_dist = self_cntlr_data->push_dist;
+    chassis_feedback_data.ctrlr_data.traverse_dist = self_cntlr_data->traverse_dist;
+}
 /**
  * @brief 底盘加速度限幅
  *
@@ -367,7 +379,7 @@ void ChassisTask()
     ChassisOutput();
 
     // 底盘回传的反馈数据
-    // FeedbackUpdate();
+    FeedbackUpdate();
 
     // 用于将收到的ui数据更新
     // ui_feedup();

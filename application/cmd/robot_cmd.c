@@ -96,10 +96,6 @@ static void RemoteControlSet()
             chassis_cmd_send.chassis_mode = CHASSIS_NORMAL;
         }
 
-        else if (switch_is_mid(rc_data[TEMP].rc.switch_right)) // 右侧开关状态[中],底盘取矿行进模式
-        {
-            chassis_cmd_send.chassis_mode = CHASSIS_NO_MOVE;
-        }
 
         // 底盘参数,系数需要调整
         chassis_cmd_send.vx = 40.0f * (float)rc_data[TEMP].rc.rocker_r_; // _水平方向
