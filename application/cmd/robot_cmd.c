@@ -113,77 +113,79 @@ static void CmdRecvUpdate()
 static void RemoteControlSet()
 {
     chassis_cmd_send.chassis_mode = CHASSIS_NO_MOVE;
- if (upper_cmd_send.upper_mode != UPPER_CALI)
- {
-    if (switch_is_up(rc_data[TEMP].rc.switch_left)) // 左侧开关状态为[上]
+    if (upper_cmd_send.upper_mode != UPPER_CALI)
     {
-        // 控制底盘运行模式
-        if (switch_is_up(rc_data[TEMP].rc.switch_right)) // 右侧开关状态[上],底盘正常行进
+        if (switch_is_up(rc_data[TEMP].rc.switch_left)) // 左侧开关状态为[上]
         {
-            chassis_cmd_send.chassis_mode = CHASSIS_NORMAL;
-        }
-
-        // 底盘参数,系数需要调整
-        chassis_cmd_send.vx = 40.0f * (float)rc_data[TEMP].rc.rocker_r_; // _水平方向
-        chassis_cmd_send.vy = 40.0f * (float)rc_data[TEMP].rc.rocker_r1; // |竖直方向
-        chassis_cmd_send.wz = -5.0f * (float)rc_data[TEMP].rc.rocker_l_; // ↺旋转方向 遥控器摇杆从左往右值增大,与旋转方向相反，所以取相反数
-    }
-    else if (switch_is_mid(rc_data[TEMP].rc.switch_left)) // 左侧开关状态为[中]
-    {  
-        upper_cmd_send.upper_mode = UPPER_SINGLE_MOTOR;
-
-     if (switch_is_up(rc_data[TEMP].rc.switch_right)) // 右侧开关状态[上] ，抬升+yaw1+yaw2
-       {
-        upper_cmd_send.joint_data.yaw1 += 0.001f * (float)rc_data[TEMP].rc.rocker_l_;
-        upper_cmd_send.joint_data.lift_dist += 0.001f * (float)rc_data[TEMP].rc.rocker_l1;
-        upper_cmd_send.joint_data.yaw2 += 0.001f * (float)rc_data[TEMP].rc.rocker_r_;
-       }
-       else if (switch_is_mid(rc_data[TEMP].rc.switch_right)) // 右侧开关状态[中] ，yaw3+差速器
-       {
-        upper_cmd_send.joint_data.yaw3 += 0.001f * (float)rc_data[TEMP].rc.rocker_l_;
-        upper_cmd_send.joint_data.roll_differ += 0.001f * (float)rc_data[TEMP].rc.rocker_r_;
-        upper_cmd_send.joint_data.pitch_differ += 0.001f * (float)rc_data[TEMP].rc.rocker_r1;
-       }
-    }
-if (switch_is_down(rc_data[TEMP].rc.switch_left))
-{
-if (switch_is_up(rc_data[TEMP].rc.switch_right))
-       upper_cmd_send.ctrlr_data.pitch = chassis_fetch_data.ctrlr_data.pitch;
-        upper_cmd_send.ctrlr_data.yaw = chassis_fetch_data.ctrlr_data.yaw;
-        upper_cmd_send.ctrlr_data.roll = chassis_fetch_data.ctrlr_data.roll;
-        upper_cmd_send.ctrlr_data.push_dist = chassis_fetch_data.ctrlr_data.push_dist;
-        upper_cmd_send.ctrlr_data.traverse_dist = chassis_fetch_data.ctrlr_data.traverse_dist;
-}
-    // 真空泵控制,拨轮向上打为负,向下为正
-    if (rc_data[TEMP].rc.dial < -100) // 向上打开/关闭真空泵
-    {
-        chassis_cmd_send.pump_mode = VAVLVE_ARM | VAVLVE_T1 | VAVLVE_T2 | VAVLVE_T3;
-    }
-    else if (rc_data[TEMP].rc.dial > 100)
-    {
-        chassis_cmd_send.pump_mode = VAVLVE_ALL_CLOSE;
-    }
-    // 拨轮下拨2s机械臂初始化
-    if (rc_data[TEMP].rc.dial > 100) // 拨轮下拨
-    {
-        if (!dial_press_flag)
-        {
-            dial_press_flag = 1;
-            dial_time_start = xTaskGetTickCount();
-        }
-
-        if (dial_press_flag == 1)
-        {
-            dial_time_now = xTaskGetTickCount();
-
-            if ((dial_time_now - dial_time_start) > 2000)
+            // 控制底盘运行模式
+            if (switch_is_up(rc_data[TEMP].rc.switch_right)) // 右侧开关状态[上],底盘正常行进
             {
-                upper_cmd_send.upper_mode = UPPER_CALI;
+                chassis_cmd_send.chassis_mode = CHASSIS_NORMAL;
+            }
+
+            // 底盘参数,系数需要调整
+            chassis_cmd_send.vx = 40.0f * (float)rc_data[TEMP].rc.rocker_r_; // _水平方向
+            chassis_cmd_send.vy = 40.0f * (float)rc_data[TEMP].rc.rocker_r1; // |竖直方向
+            chassis_cmd_send.wz = -5.0f * (float)rc_data[TEMP].rc.rocker_l_; // ↺旋转方向 遥控器摇杆从左往右值增大,与旋转方向相反，所以取相反数
+        }
+        else if (switch_is_mid(rc_data[TEMP].rc.switch_left)) // 左侧开关状态为[中]
+        {  
+            upper_cmd_send.upper_mode = UPPER_SINGLE_MOTOR;
+
+            if (switch_is_up(rc_data[TEMP].rc.switch_right)) // 右侧开关状态[上] ，抬升+yaw1+yaw2
+            {
+                upper_cmd_send.joint_data.yaw1 += 0.001f * (float)rc_data[TEMP].rc.rocker_l_;
+                upper_cmd_send.joint_data.lift_dist += 0.001f * (float)rc_data[TEMP].rc.rocker_l1;
+                upper_cmd_send.joint_data.yaw2 += 0.001f * (float)rc_data[TEMP].rc.rocker_r_;
+            }
+            else if (switch_is_mid(rc_data[TEMP].rc.switch_right)) // 右侧开关状态[中] ，yaw3+差速器
+            {
+                upper_cmd_send.joint_data.yaw3 += 0.001f * (float)rc_data[TEMP].rc.rocker_l_;
+                upper_cmd_send.joint_data.roll_differ += 0.001f * (float)rc_data[TEMP].rc.rocker_r_;
+                upper_cmd_send.joint_data.pitch_differ += 0.001f * (float)rc_data[TEMP].rc.rocker_r1;
+            }
+        }
+        else if (switch_is_down(rc_data[TEMP].rc.switch_left)) // 左侧开关状态为[下]
+        {
+            if (switch_is_up(rc_data[TEMP].rc.switch_right)) // 右侧开关状态[上] ，自定义控制器数据传输
+            {
+                upper_cmd_send.ctrl_data.pitch = chassis_fetch_data.ctrl_data.pitch;
+                upper_cmd_send.ctrl_data.yaw = chassis_fetch_data.ctrl_data.yaw;
+                upper_cmd_send.ctrl_data.roll = chassis_fetch_data.ctrl_data.roll;
+                upper_cmd_send.ctrl_data.push_dist = chassis_fetch_data.ctrl_data.push_dist;
+                upper_cmd_send.ctrl_data.traverse_dist = chassis_fetch_data.ctrl_data.traverse_dist;
+            }
+        }
+        // 真空泵控制,拨轮向上打为负,向下为正
+        if (rc_data[TEMP].rc.dial < -100) // 向上打开/关闭真空泵
+        {
+            chassis_cmd_send.pump_mode = VALVE_ARM | VALVE_T1 | VALVE_T2 | VALVE_T3;
+        }
+        else if (rc_data[TEMP].rc.dial > 100)
+        {
+            chassis_cmd_send.pump_mode = VALVE_ALL_CLOSE;
+        }
+        // 拨轮下拨2s机械臂初始化
+        if (rc_data[TEMP].rc.dial > 100) // 拨轮下拨
+        {
+            if (!dial_press_flag)
+            {
+                dial_press_flag = 1;
+                dial_time_start = xTaskGetTickCount();
+            }
+
+            if (dial_press_flag == 1)
+            {
+                dial_time_now = xTaskGetTickCount();
+
+                if ((dial_time_now - dial_time_start) > 2000)
+                {
+                    upper_cmd_send.upper_mode = UPPER_CALI;
+                }
             }
         }
     }
- }
- else
+    else
     {
         if (upper_fetch_data.action_step == 0)
         {

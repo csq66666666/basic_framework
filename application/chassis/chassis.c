@@ -199,11 +199,11 @@ static void ChassisOutput()
  */
 static void FeedbackUpdate()
 {
-    chassis_feedback_data.ctrlr_data.yaw = 4.5f * self_cntlr_data->yaw;
-    chassis_feedback_data.ctrlr_data.pitch = self_cntlr_data->pitch;
-    chassis_feedback_data.ctrlr_data.roll = -self_cntlr_data->roll;
-    chassis_feedback_data.ctrlr_data.push_dist = self_cntlr_data->push_dist;
-    chassis_feedback_data.ctrlr_data.traverse_dist = self_cntlr_data->traverse_dist;
+    chassis_feedback_data.ctrl_data.yaw = 4.5f * self_cntlr_data->yaw;
+    chassis_feedback_data.ctrl_data.pitch = self_cntlr_data->pitch;
+    chassis_feedback_data.ctrl_data.roll = -self_cntlr_data->roll;
+    chassis_feedback_data.ctrl_data.push_dist = self_cntlr_data->push_dist;
+    chassis_feedback_data.ctrl_data.traverse_dist = self_cntlr_data->traverse_dist;
 }
 /**
  * @brief 底盘加速度限幅
@@ -305,10 +305,10 @@ static void AccelLimit()
  */
 static void ElecSwitchControl()
 {
-    (chassis_cmd_recv.pump_mode & VAVLVE_ARM) ? ElecSwitchSet(valve_1) : ElecSwitchReset(valve_1);
-    (chassis_cmd_recv.pump_mode & VAVLVE_T1) ? ElecSwitchSet(valve_2) : ElecSwitchReset(valve_2);
-    (chassis_cmd_recv.pump_mode & VAVLVE_T2) ? ElecSwitchSet(valve_3) : ElecSwitchReset(valve_3);
-    (chassis_cmd_recv.pump_mode & VAVLVE_T3) ? ElecSwitchSet(valve_4) : ElecSwitchReset(valve_4);
+    (chassis_cmd_recv.pump_mode & VALVE_ARM) ? ElecSwitchSet(valve_1) : ElecSwitchReset(valve_1);
+    (chassis_cmd_recv.pump_mode & VALVE_T1) ? ElecSwitchSet(valve_2) : ElecSwitchReset(valve_2);
+    (chassis_cmd_recv.pump_mode & VALVE_T2) ? ElecSwitchSet(valve_3) : ElecSwitchReset(valve_3);
+    (chassis_cmd_recv.pump_mode & VALVE_T3) ? ElecSwitchSet(valve_4) : ElecSwitchReset(valve_4);
     chassis_cmd_recv.pump_mode ? ElecSwitchSet(pump1) : ElecSwitchReset(pump1);
     chassis_cmd_recv.pump_mode ? ElecSwitchSet(pump2) : ElecSwitchReset(pump2);
 }

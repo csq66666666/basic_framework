@@ -19,8 +19,8 @@
 
 /* 开发板类型定义,烧录时注意不要弄错对应功能;修改定义后需要重新编译,只能存在一个定义! */
 // #define ONE_BOARD // 单板控制整车
-#define CHASSIS_BOARD //底盘板
-// #define GIMBAL_BOARD  //云台板
+// #define CHASSIS_BOARD //底盘板
+#define GIMBAL_BOARD  //云台板
 
 #define VISION_USE_VCP // 使用虚拟串口发送视觉数据
 // #define VISION_USE_UART // 使用串口发送视觉数据
@@ -104,11 +104,11 @@
 #define GYRO2GIMBAL_DIR_ROLL 1  // 陀螺仪数据相较于云台的roll的方向,1为相同,-1为相反
 
 // 电磁阀状态
-#define VAVLVE_ALL_CLOSE ((uint8_t)0b0000) // 关闭全部阀门
-#define VAVLVE_ARM ((uint8_t)0b1000)       // 选中机械臂阀门
-#define VAVLVE_T1 ((uint8_t)0b0100)        // 选中横移第一路阀门
-#define VAVLVE_T2 ((uint8_t)0b0010)        // 选中横移第二路阀门
-#define VAVLVE_T3 ((uint8_t)0b0001)        // 选中横移第三路阀门
+#define VALVE_ALL_CLOSE ((uint8_t)0b0000) // 关闭全部阀门
+#define VALVE_ARM ((uint8_t)0b1000)       // 选中机械臂阀门
+#define VALVE_T1 ((uint8_t)0b0100)        // 选中横移第一路阀门
+#define VALVE_T2 ((uint8_t)0b0010)        // 选中横移第二路阀门
+#define VALVE_T3 ((uint8_t)0b0001)        // 选中横移第三路阀门
 
 // 检查是否出现主控板定义冲突,只允许一个开发板定义存在,否则编译会自动报错
 #if (defined(ONE_BOARD) && defined(CHASSIS_BOARD)) || \
@@ -247,7 +247,7 @@ typedef struct
 typedef struct
 {
     Upper_Joint_Data_s joint_data; // 关节数据
-    Self_Cntlr_s ctrlr_data;       // 自定义控制器数据
+    Self_Cntlr_s ctrl_data;       // 自定义控制器数据
 
     uint8_t cfm_flag : 4;
     uint8_t stop_flag : 1;
@@ -293,7 +293,7 @@ typedef struct
     // float real_vy;
     // float real_wz;
 
-   Self_Cntlr_s ctrlr_data; // 自定义控制器数据
+   Self_Cntlr_s ctrl_data; // 自定义控制器数据
 
 } Chassis_Upload_Data_s;
 
