@@ -49,7 +49,7 @@ static Referee_Interactive_info_t ui_data; // UI数据，将底盘中的数据�
 static DJIMotorInstance *motor_lf, *motor_rf, *motor_lb, *motor_rb; // left right forward back
 
 static Self_Cntlr_s *self_cntlr_data;                                    // 自定义控制器数据接收
-static ElecSwitchInstance *valve_1, *valve_2, *valve_3, *valve_4, *pump; // 4个继电器加2个霍尔开关
+static ElecSwitchInstance *valve_1, *valve_2, *valve_3, *valve_4, *pump1,*pump2; // 4个继电器加2个霍尔开关
 
 /* 私有函数计算的中介变量,设为静态避免参数传递的开销 */
 static float sin_theta, cos_theta;   // 设置底盘行进方向
@@ -127,7 +127,11 @@ void ChassisInit()
 
     valve_init_cofig.GPIOx = HALL_GPIO_Port;
     valve_init_cofig.GPIO_Pin = HALL1_Pin;
-    pump = ElecSwitchInit(&valve_init_cofig);
+    pump1 = ElecSwitchInit(&valve_init_cofig);
+
+    valve_init_cofig.GPIOx = HALL_GPIO_Port;
+    valve_init_cofig.GPIO_Pin = HALL2_Pin;
+    pump2 = ElecSwitchInit(&valve_init_cofig);
 
     // 发布订阅初始化,如果为双板,则需要can comm来传递消息
 #ifdef CHASSIS_BOARD
@@ -305,7 +309,8 @@ static void ElecSwitchControl()
     (chassis_cmd_recv.pump_mode & VAVLVE_T1) ? ElecSwitchSet(valve_2) : ElecSwitchReset(valve_2);
     (chassis_cmd_recv.pump_mode & VAVLVE_T2) ? ElecSwitchSet(valve_3) : ElecSwitchReset(valve_3);
     (chassis_cmd_recv.pump_mode & VAVLVE_T3) ? ElecSwitchSet(valve_4) : ElecSwitchReset(valve_4);
-    chassis_cmd_recv.pump_mode ? ElecSwitchSet(pump) : ElecSwitchReset(pump);
+    chassis_cmd_recv.pump_mode ? ElecSwitchSet(pump1) : ElecSwitchReset(pump1);
+    chassis_cmd_recv.pump_mode ? ElecSwitchSet(pump2) : ElecSwitchReset(pump2);
 }
 
 /**
@@ -328,7 +333,7 @@ static void ChassisModeControl()
         DJIMotorStop(motor_rb);
         break;
     case CHASSIS_NORMAL: // 正常行进
-        cos_theta = 1;
+        cos_theta = -1;
         sin_theta = 0;
         break;
     case CHASSIS_NO_MOVE: // 锁定底盘
@@ -370,7 +375,7 @@ void ChassisTask()
     MecanumFKine();
 
     // 加速度限幅
-    AccelLimit();
+    // AccelLimit();
 
     // 根据控制模式进行逆运动学解算,计算底盘输出
     MecanumIKine();
