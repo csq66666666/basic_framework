@@ -145,7 +145,15 @@ static void RemoteControlSet()
         upper_cmd_send.joint_data.pitch_differ += 0.001f * (float)rc_data[TEMP].rc.rocker_r1;
        }
     }
-
+if (switch_is_down(rc_data[TEMP].rc.switch_left))
+{
+if (switch_is_up(rc_data[TEMP].rc.switch_right))
+       upper_cmd_send.ctrlr_data.pitch = chassis_fetch_data.ctrlr_data.pitch;
+        upper_cmd_send.ctrlr_data.yaw = chassis_fetch_data.ctrlr_data.yaw;
+        upper_cmd_send.ctrlr_data.roll = chassis_fetch_data.ctrlr_data.roll;
+        upper_cmd_send.ctrlr_data.push_dist = chassis_fetch_data.ctrlr_data.push_dist;
+        upper_cmd_send.ctrlr_data.traverse_dist = chassis_fetch_data.ctrlr_data.traverse_dist;
+}
     // 真空泵控制,拨轮向上打为负,向下为正
     if (rc_data[TEMP].rc.dial < -100) // 向上打开/关闭真空泵
     {

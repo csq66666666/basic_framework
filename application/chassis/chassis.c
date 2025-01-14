@@ -106,7 +106,7 @@ void ChassisInit()
     motor_rb = DJIMotorInit(&chassis_motor_config);
 
     // referee_data = UITaskInit(&huart1, &ui_data); // 裁判系统初始化,会同时初始化UI（注意自定义控制器使用了学生串口huart6，我们的裁判系统接口为huart1）
-    self_cntlr_data = SelfCntlrInit(&huart6);
+    self_cntlr_data = SelfCntlrInit(&huart1);
 
     ElecSwitch_Init_Config_s valve_init_cofig = {
         .GPIOx = VALVE1_GPIO_Port,
@@ -333,7 +333,7 @@ static void ChassisModeControl()
         DJIMotorStop(motor_rb);
         break;
     case CHASSIS_NORMAL: // 正常行进
-        cos_theta = -1;
+        cos_theta = 1;
         sin_theta = 0;
         break;
     case CHASSIS_NO_MOVE: // 锁定底盘

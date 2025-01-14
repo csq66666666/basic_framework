@@ -9,6 +9,13 @@
         "usbd_cdc_if.h": "c",
         "super_cap.h": "c",
         "referee_task.h": "c",
-        "self_controller.h": "c"
+        "self_controller.h": "c",
+        "dji_motor.h": "c",
+        "message_center.h": "c",
+        "upper.h": "c",
+        "robot_cmd.h": "c",
+        "general_def.h": "c",
+        "ins_task.h": "c",
+        "can_comm.h": "c"
     }
 }
