@@ -9,6 +9,8 @@
         "usbd_cdc_if.h": "c",
         "super_cap.h": "c",
         "referee_task.h": "c",
-        "self_controller.h": "c"
+        "self_controller.h": "c",
+        "general_def.h": "c",
+        "vofa.h": "c"
     }
 }

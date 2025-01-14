@@ -110,11 +110,11 @@ static void RemoteControlSet()
     // 真空泵控制,拨轮向上打为负,向下为正
     if (rc_data[TEMP].rc.dial < -100) // 向上打开/关闭真空泵
     {
-        chassis_cmd_send.pump_mode = VAVLVE_ARM | VAVLVE_T1 | VAVLVE_T2 | VAVLVE_T3;
+        chassis_cmd_send.pump_mode = VALVE_ARM1 | VALVE_ARM2 | VALVE_T1 | VALVE_T2;
     }
     else if (rc_data[TEMP].rc.dial > 100)
     {
-        chassis_cmd_send.pump_mode = VAVLVE_ALL_CLOSE;
+        chassis_cmd_send.pump_mode = VALVE_ALL_CLOSE;
     }
 }
 

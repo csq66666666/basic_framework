@@ -53,11 +53,11 @@
 #define GYRO2GIMBAL_DIR_ROLL 1  // 陀螺仪数据相较于云台的roll的方向,1为相同,-1为相反
 
 // 电磁阀状态
-#define VAVLVE_ALL_CLOSE ((uint8_t)0b0000) // 关闭全部阀门
-#define VAVLVE_ARM ((uint8_t)0b1000)       // 选中机械臂阀门
-#define VAVLVE_T1 ((uint8_t)0b0100)        // 选中横移第一路阀门
-#define VAVLVE_T2 ((uint8_t)0b0010)        // 选中横移第二路阀门
-#define VAVLVE_T3 ((uint8_t)0b0001)        // 选中横移第三路阀门
+#define VALVE_ALL_CLOSE ((uint8_t)0b0000) // 关闭全部阀门
+#define VALVE_ARM1 ((uint8_t)0b1000)      // 选中机械臂第一路阀门
+#define VALVE_ARM2 ((uint8_t)0b0100)        // 选中机械臂第二路阀门
+#define VALVE_T1 ((uint8_t)0b0010)        // 选中矿仓第一路阀门
+#define VALVE_T2 ((uint8_t)0b0001)        // 选中矿仓第二路阀门
 
 // 检查是否出现主控板定义冲突,只允许一个开发板定义存在,否则编译会自动报错
 #if (defined(ONE_BOARD) && defined(CHASSIS_BOARD)) || \
