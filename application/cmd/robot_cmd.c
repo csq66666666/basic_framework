@@ -184,6 +184,10 @@ static void RemoteControlSet()
                 }
             }
         }
+        else
+        {       
+            dial_press_flag = 0;
+        }
     }
     else
     {
