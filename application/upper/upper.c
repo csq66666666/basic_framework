@@ -1,3 +1,15 @@
+/**
+ * @file chassis.c
+ * @author csq666666 Weedy
+ * @brief 机械臂应用,负责接收robot_cmd的控制命令并根据命令进行运动学解算,得到输出
+ *        注意确定所有电机的正反转
+ *
+ * @version 0.1
+ * @date 2025-01-16
+ *
+ * @copyright Copyright (c) 2022
+ *
+ */
 #include "upper.h"
 #include "robot_def.h"
 #include "dji_motor.h"
@@ -8,10 +20,10 @@
 
 // 上层机构所有电机定义  大YAW（3508）      同步带YAW（3508）  控制差速器YAW（2006） 左差速（2006）    右差速（2006）           升降（3508）
 static DJIMotorInstance *upper_yaw1_motor, *upper_yaw2_motor, *upper_yaw3_motor, *upper_differ_motor_l, *upper_differ_motor_r, *upper_lift_motor;
-static float upper_yaw1_op, upper_yaw2_op, upper_yaw3_op, upper_differ_l_op, upper_differ_r_op; // 机械臂电机输出数据
-static float upper_lift_op;                                                                     // 抬升电机输出数据
+static float upper_yaw1_op, upper_yaw2_op, upper_yaw3_op, upper_differ_l_op, upper_differ_r_op; // 机械臂电机输出数据,用于设定电机参考值
+static float upper_lift_op;                                                                     // 抬升电机输出数据,用于设定电机参考值
 static upper_mode_e upper_last_mode;                                                            // 上一次的模式
-static Upper_Joint_Data_s upper_solve;                                                          // 上层机构所有关节数据
+static Upper_Joint_Data_s upper_solve;                                                          // 上层机构所有关节数据,由cmd发送或程序自行修改
 // static Upper_Kine_s Upper_Kine;                                                                     // 运动学数据
 static uint8_t action_finish_flag;
 static uint8_t action_step = 0;
@@ -23,6 +35,7 @@ static Upper_Upload_Data_s upper_feedback_data; // 回传给cmd的机械臂状�
 static Upper_Ctrl_Cmd_s upper_cmd_recv;         // 来自cmd的控制信息
 
 attitude_t *Upper_IMU_data;
+
 /**
  * @brief 通过电机速度来判断动作是否完成
  * @param 校准的步骤 完成一次 加一
@@ -49,6 +62,10 @@ attitude_t *Upper_IMU_data;
         }                                                           \
     }
 
+/**
+ * @brief 机械臂初始化
+ *
+ */
 void UpperInit()
 {
     Upper_IMU_data = INS_Init(); // 云台IMU初始化
@@ -91,32 +108,38 @@ void UpperInit()
     // 大YAW（3508）
     upper_motor_config.can_init_config.can_handle = &hcan1;
     upper_motor_config.can_init_config.tx_id = 2;
+
     upper_motor_config.controller_param_init_config.angle_PID.Kp = 10;
     upper_motor_config.controller_param_init_config.angle_PID.Ki = 0;
     upper_motor_config.controller_param_init_config.angle_PID.Kd = 0;
     upper_motor_config.controller_param_init_config.angle_PID.IntegralLimit = 2000;
     upper_motor_config.controller_param_init_config.angle_PID.MaxOut = 15000;
+
     upper_motor_config.controller_param_init_config.speed_PID.Kp = 2;
     upper_motor_config.controller_param_init_config.speed_PID.Ki = 0;
     upper_motor_config.controller_param_init_config.speed_PID.Kd = 0;
     upper_motor_config.controller_param_init_config.speed_PID.IntegralLimit = 2000;
     upper_motor_config.controller_param_init_config.speed_PID.MaxOut = 15000;
+
     upper_yaw1_motor = DJIMotorInit(&upper_motor_config);
     upper_yaw1_motor->measure.init_flag = 1;
 
     // 同步带YAW（3508）
     upper_motor_config.can_init_config.can_handle = &hcan1;
     upper_motor_config.can_init_config.tx_id = 3;
+
     upper_motor_config.controller_param_init_config.angle_PID.Kp = 15;
     upper_motor_config.controller_param_init_config.angle_PID.Ki = 0;
     upper_motor_config.controller_param_init_config.angle_PID.Kd = 0;
     upper_motor_config.controller_param_init_config.angle_PID.IntegralLimit = 2000;
     upper_motor_config.controller_param_init_config.angle_PID.MaxOut = 10000;
+
     upper_motor_config.controller_param_init_config.speed_PID.Kp = 4;
     upper_motor_config.controller_param_init_config.speed_PID.Ki = 0;
     upper_motor_config.controller_param_init_config.speed_PID.Kd = 0;
     upper_motor_config.controller_param_init_config.speed_PID.IntegralLimit = 2000;
     upper_motor_config.controller_param_init_config.speed_PID.MaxOut = 15000;
+
     upper_motor_config.motor_type = M3508;
     upper_yaw2_motor = DJIMotorInit(&upper_motor_config);
     upper_yaw2_motor->measure.init_flag = 1;
@@ -124,16 +147,19 @@ void UpperInit()
     // 控制差速器YAW（2006）
     upper_motor_config.can_init_config.can_handle = &hcan1;
     upper_motor_config.can_init_config.tx_id = 4;
+
     upper_motor_config.controller_param_init_config.angle_PID.Kp = 10;
     upper_motor_config.controller_param_init_config.angle_PID.Ki = 0;
     upper_motor_config.controller_param_init_config.angle_PID.Kd = 0;
     upper_motor_config.controller_param_init_config.angle_PID.IntegralLimit = 2000;
     upper_motor_config.controller_param_init_config.angle_PID.MaxOut = 20000;
+
     upper_motor_config.controller_param_init_config.speed_PID.Kp = 2.1;
     upper_motor_config.controller_param_init_config.speed_PID.Ki = 0.21;
     upper_motor_config.controller_param_init_config.speed_PID.Kd = 0;
     upper_motor_config.controller_param_init_config.speed_PID.IntegralLimit = 3000;
     upper_motor_config.controller_param_init_config.speed_PID.MaxOut = 15000;
+
     upper_motor_config.controller_setting_init_config.motor_reverse_flag = MOTOR_DIRECTION_REVERSE;
     upper_motor_config.motor_type = M2006;
     upper_yaw3_motor = DJIMotorInit(&upper_motor_config);
@@ -142,16 +168,19 @@ void UpperInit()
     // 差速器左侧电机
     upper_motor_config.can_init_config.can_handle = &hcan1;
     upper_motor_config.can_init_config.tx_id = 5;
+
     upper_motor_config.controller_param_init_config.angle_PID.Kp = 10;
     upper_motor_config.controller_param_init_config.angle_PID.Ki = 0;
     upper_motor_config.controller_param_init_config.angle_PID.Kd = 0;
     upper_motor_config.controller_param_init_config.angle_PID.IntegralLimit = 2000;
     upper_motor_config.controller_param_init_config.angle_PID.MaxOut = 10000;
+
     upper_motor_config.controller_param_init_config.speed_PID.Kp = 3;
     upper_motor_config.controller_param_init_config.speed_PID.Ki = 0;
     upper_motor_config.controller_param_init_config.speed_PID.Kd = 0;
     upper_motor_config.controller_param_init_config.speed_PID.IntegralLimit = 2000;
     upper_motor_config.controller_param_init_config.speed_PID.MaxOut = 15000;
+
     upper_motor_config.controller_setting_init_config.motor_reverse_flag = MOTOR_DIRECTION_REVERSE;
     upper_motor_config.motor_type = M2006;
     upper_differ_motor_l = DJIMotorInit(&upper_motor_config);
@@ -186,6 +215,7 @@ static void UpperFeedUpdata()
 
     upper_last_mode = upper_cmd_recv.upper_mode;
 }
+
 /**
  * @brief 上层机构电机使能
  *
@@ -199,6 +229,7 @@ static void UpperIMotorEnable()
     DJIMotorEnable(upper_differ_motor_r);
     DJIMotorEnable(upper_lift_motor);
 }
+
 /**
  * @brief 上层机构无力模式
  *
@@ -213,11 +244,12 @@ static void UpperZeroForceMode()
     DJIMotorStop(upper_lift_motor);
     upper_lift_motor->measure.init_flag = 1;
 }
+
 /**
  * @brief 将关节数据换算成电机输出数据
  *
  */
-static void UpperCalculat()
+static void UpperCalculate()
 {
     upper_yaw1_op = upper_solve.yaw1 * SHAFT_2_ROTOR_YAW1 + upper_yaw1_motor->measure.init_angle;
     upper_yaw2_op = upper_solve.yaw2 * SHAFT_2_ROTOR_YAW2 + upper_yaw2_motor->measure.init_angle;
@@ -226,6 +258,7 @@ static void UpperCalculat()
     upper_differ_r_op = (upper_solve.pitch_differ + upper_solve.roll_differ / GEAR_RATION_DIFFER) * SHAFT_2_ROTOR_ROLL_DIFFER + upper_differ_motor_r->measure.init_angle;
     upper_lift_op = upper_solve.lift_dist * LIFT_DIST_2_ANGLE - upper_lift_motor->measure.init_angle; // 电机反装，测量的初始值需要取反
 }
+
 /**
  * @brief 上层机构校准模式
  *
@@ -247,7 +280,7 @@ static void UpperCaliMode()
         if (action_finish_flag == 0 && action_flag == 0)
         {
             action_flag = 1;
-            UpperCalculat();
+            UpperCalculate();
             DJIMotorOuterLoop(upper_differ_motor_l, SPEED_LOOP);
             DJIMotorOuterLoop(upper_differ_motor_r, SPEED_LOOP);
             upper_differ_motor_l->motor_controller.speed_PID.MaxOut = 4000;
@@ -268,7 +301,7 @@ static void UpperCaliMode()
             DJIMotorOuterLoop(upper_differ_motor_l, ANGLE_LOOP);
             DJIMotorOuterLoop(upper_differ_motor_r, ANGLE_LOOP);
             upper_solve.pitch_differ = upper_feedback_data.joint_data.pitch_differ + (pitch_test_max - pitch_test_min) / 2.0f - 10.0f;
-            UpperCalculat();
+            UpperCalculate();
         }
 
         if (fabsf(upper_differ_motor_l->measure.speed_aps) < 1.0f && fabsf(upper_differ_motor_r->measure.speed_aps) < 1.0f)
@@ -283,14 +316,14 @@ static void UpperCaliMode()
                     if (action_flag == 1)
                     {
                         action_flag = 2;
-                        UpperCalculat();
+                        UpperCalculate();
                         pitch_test_max = upper_feedback_data.joint_data.pitch_differ;
                     }
                     else if (action_flag == 3)
                     {
                         action_flag = 0;
                         action_finish_flag = 1;
-                        UpperCalculat();
+                        UpperCalculate();
                         pitch_test_min = upper_feedback_data.joint_data.pitch_differ;
                     }
                 }
@@ -310,21 +343,21 @@ static void UpperCaliMode()
     else if (action_step == 2)
     {
         // yaw1
-        if (action_finish_flag == 0 && action_flag == 0)
+        if (action_finish_flag == 0 && action_flag == 0) // step 1
         {
             action_flag = 1;
-            UpperCalculat();
+            UpperCalculate();
             DJIMotorOuterLoop(upper_yaw1_motor, SPEED_LOOP);
             upper_yaw1_motor->motor_controller.speed_PID.MaxOut = 3000;
             upper_yaw1_op = 5000;
         }
-        else if (action_flag == 0)
+        else if (action_flag == 0) // step 3
         {
             action_flag = 1;
             DJIMotorOuterLoop(upper_yaw1_motor, ANGLE_LOOP);
             upper_yaw1_motor->motor_controller.angle_PID.MaxOut = 4000; // 防止回来过程中yaw运动太快
             upper_solve.yaw1 = upper_feedback_data.joint_data.yaw1 - 20;
-            UpperCalculat();
+            UpperCalculate();
         }
 
         if (fabsf(upper_yaw1_motor->measure.speed_aps) < EPS)
@@ -333,13 +366,13 @@ static void UpperCaliMode()
 
             if (cali_time > CALI_STEP_TIME)
             {
-                if (action_finish_flag == 0)
+                if (action_finish_flag == 0)  // step 2
                 {
                     cali_time = 0;
                     action_flag = 0;
                     action_finish_flag = 1;
                 }
-                else
+                else  // step 4
                 {
                     cali_time = 0;
                     action_flag = 0;
@@ -347,7 +380,7 @@ static void UpperCaliMode()
                     action_step++;
                     upper_yaw1_motor->measure.init_flag = 1;
                     upper_solve.yaw1 = 0;
-                    // UpperCalculat(); // 此时init_flag还未被置位，调用UpperCalculat函数会使pitch轴回到未校准时的位置
+                    // UpperCalculate(); // 此时init_flag还未被置位，调用UpperCalculate函数会使大yaw轴回到未校准时的位置
                 }
             }
         }
@@ -358,7 +391,7 @@ static void UpperCaliMode()
         if (action_finish_flag == 0 && action_flag == 0)
         {
             action_flag = 1;
-            UpperCalculat();
+            UpperCalculate();
             DJIMotorOuterLoop(upper_yaw2_motor, SPEED_LOOP);
             upper_yaw2_motor->motor_controller.speed_PID.MaxOut = 3000;
             upper_yaw2_op = 15000;
@@ -369,7 +402,7 @@ static void UpperCaliMode()
             DJIMotorOuterLoop(upper_yaw2_motor, ANGLE_LOOP);
             upper_yaw2_motor->motor_controller.angle_PID.MaxOut = 4000;
             upper_solve.yaw2 = upper_feedback_data.joint_data.yaw2 - 120;
-            UpperCalculat();
+            UpperCalculate();
         }
 
         if (fabsf(upper_yaw2_motor->measure.speed_aps) < EPS)
@@ -392,7 +425,7 @@ static void UpperCaliMode()
                     action_step++;
                     upper_yaw2_motor->measure.init_flag = 1;
                     upper_solve.yaw2 = 0;
-                    // UpperCalculat();
+                    // UpperCalculate();
                 }
             }
         }
@@ -402,7 +435,7 @@ static void UpperCaliMode()
         if (action_finish_flag == 0 && action_flag == 0)
         {
             action_flag = 1;
-            UpperCalculat();
+            UpperCalculate();
             DJIMotorOuterLoop(upper_yaw3_motor, SPEED_LOOP);
             upper_yaw3_motor->motor_controller.speed_PID.MaxOut = 3000;
             upper_yaw3_op = 15000;
@@ -413,7 +446,7 @@ static void UpperCaliMode()
             DJIMotorOuterLoop(upper_yaw3_motor, ANGLE_LOOP);
             upper_yaw3_motor->motor_controller.angle_PID.MaxOut = 4000;
             upper_solve.yaw3 = upper_feedback_data.joint_data.yaw3 - 120;
-            UpperCalculat();
+            UpperCalculate();
         }
 
         if (fabsf(upper_yaw3_motor->measure.speed_aps) < EPS)
@@ -436,7 +469,7 @@ static void UpperCaliMode()
                     action_step++;
                     upper_yaw3_motor->measure.init_flag = 1;
                     upper_solve.yaw3 = 0;
-                    // UpperCalculat();
+                    // UpperCalculate();
                 }
             }
         }
@@ -444,13 +477,21 @@ static void UpperCaliMode()
     else if (action_step == 1)
     {
         // 抬升
-        if (action_finish_flag == 0 && action_flag == 0)
+        if (action_finish_flag == 0 && action_flag == 0) // step 1
         {
             action_flag = 1;
-            UpperCalculat();
+            UpperCalculate();
             DJIMotorOuterLoop(upper_lift_motor, SPEED_LOOP);
             upper_lift_motor->motor_controller.speed_PID.MaxOut = 1500;
             upper_lift_op = -15000;
+        }
+        else if (action_flag == 0) // step 3
+        {
+            action_flag = 1;
+            DJIMotorOuterLoop(upper_lift_motor, ANGLE_LOOP);
+            upper_lift_motor->motor_controller.angle_PID.MaxOut = 4000; // 防止回来过程中yaw运动太快
+            upper_solve.lift_dist = upper_feedback_data.joint_data.lift_dist - 200;
+            UpperCalculate();
         }
 
         if (fabsf(upper_lift_motor->measure.speed_aps) < 100)
@@ -486,7 +527,7 @@ static void UpperCaliMode()
         upper_yaw3_motor->motor_controller.angle_PID.MaxOut = angle_maxout_yaw;
 
         upper_lift_motor->motor_controller.speed_PID.MaxOut = speed_maxout_lift;
-        UpperCalculat();
+        UpperCalculate();
     }
 }
 
@@ -503,6 +544,7 @@ static void UpperOutput()
     DJIMotorSetRef(upper_differ_motor_r, upper_differ_r_op);
     DJIMotorSetRef(upper_lift_motor, upper_lift_op);
 }
+
 /**
  * @brief 单轴控制模式
  *
@@ -555,7 +597,7 @@ void UpperTask()
 
     // 将关节数据换算成电机输出数据
     if (upper_cmd_recv.upper_mode != UPPER_CALI)
-        UpperCalculat();
+        UpperCalculate();
 
     // 电机输出
     UpperOutput();

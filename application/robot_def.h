@@ -29,24 +29,24 @@
 // 机械臂参数
 #define CALI_STEP_TIME 100                                              // 校准时间
 #define ACTION_STEP_TIME 50                                             // 动作完成判断时间
-#define yaw1_MAX 110.0f                                                 // yaw1最大角度(待修改)
-#define yaw1_MIN -110.0f                                                // yaw1轴最小角度(待修改)
+#define yaw1_MAX 360.0f                                                 // yaw1最大角度(待修改)
+#define yaw1_MIN -360.0f                                                // yaw1轴最小角度(待修改)
 
-#define yaw2_MAX 110.0f                                                 // yaw2最大角度(待修改)
-#define yaw2_MIN -110.0f                                                // yaw2轴最小角度(待修改)
+#define yaw2_MAX 360.0f                                                 // yaw2最大角度(待修改)
+#define yaw2_MIN -360.0f                                                // yaw2轴最小角度(待修改)
 
-#define yaw3_MAX 110.0f                                                 // yaw3最大角度(待修改)
-#define yaw3_MIN -110.0f                                                // yaw3轴最小角度(待修改)
+#define yaw3_MAX 360.0f                                                 // yaw3最大角度(待修改)
+#define yaw3_MIN -360.0f                                                // yaw3轴最小角度(待修改)
 
-#define PITCH_DIFFER_MAX 90.0f                                          // pitch_differ轴最大角度
-#define PITCH_DIFFER_MIN -90.0f                                         // pitch_differ轴最小角度
+#define PITCH_DIFFER_MAX 180.0f                                          // pitch_differ轴最大角度
+#define PITCH_DIFFER_MIN -180.0f                                         // pitch_differ轴最小角度
 
-#define GEAR_RATION_YAW1 (14.0f / 54.0f)                                 // yaw1轴齿轮比(待修改)
-#define GEAR_RATION_YAW2 (14.0f / 54.0f)                                 // yaw3轴齿轮比（待修改）
-#define GEAR_RATION_YAW3 (14.0f / 54.0f)                                 // yaw3轴齿轮比（待修改）
+#define GEAR_RATION_YAW1 (16.0f / 64.0f)                                 // yaw1轴齿轮比
+#define GEAR_RATION_YAW2 (16.0f / 36.0f)                                 // yaw2轴齿轮比
+#define GEAR_RATION_YAW3 (16.0f / 24.0f)                                 // yaw3轴齿轮比
 
 
-#define GEAR_RATION_DIFFER (30.0f / 50.0f)                              // 差速器太阳齿轮:行星齿轮(待修改)
+#define GEAR_RATION_DIFFER (16.0f / 24.0f)                              // 差速器行星齿轮:太阳齿轮
 #define REDUCTION_RATIO_YAW1 19.0f                                      // yaw1轴电机减速比
 #define REDUCTION_RATIO_YAW2 19.0f                                      // yaw2轴电机减速比
 #define REDUCTION_RATIO_YAW3 36.0f                                      // yaw3轴电机减速比
@@ -67,15 +67,18 @@
 #define SHAFT_2_ROTOR_ROLL_DIFFER REDUCTION_RATIO_DIFFER                // 差速器roll轴角度转换到电机转子角度
 #define SHAFT_2_ROTOR_PITCH_DIFFER REDUCTION_RATIO_DIFFER               // 差速器pitch轴角度转换到电机转子角度
 // 滑移参数
-#define LIFT_GEAR_R 23.3f                                             // 抬升齿轮半径(待修改)
+#define REDUCTION_RATIO_LIFT 19.0f                                      // 抬升电机减速比
 
-#define LIFT_MAX_DIST 529.0f                                          // 抬升最大距离(待修改)
+#define LIFT_GEAR_R 31.275f                                             // 抬升齿轮半径
 
-#define LIFT_DIST_2_ANGLE (360.0f * 27.0f / (2.0f * PI * 23.3f))      // 抬升距离转电机角度(待修改)
+#define LIFT_MAX_DIST 702.2f                                          // 抬升最大距离(待修改)
+
+#define LIFT_DIST_2_ANGLE (360.0f * REDUCTION_RATIO_LIFT / (2.0f * PI * LIFT_GEAR_R))      // 抬升距离转电机角度(可能待修改) // REDUCTION_RATIO_LIFT 原27.0
 
 #define SAFE_DIST 10.0f                                               // 安全距离(待修改)
 #define LIFT_MAX_SAFE_DIST (LIFT_MAX_DIST - SAFE_DIST)                // 抬升最大安全距离(待修改)
 
+// **************************************************************************************************************************************** 以下无用
 // 云台参数
 #define YAW_CHASSIS_ALIGN_ECD 2711  // 云台和底盘对齐指向相同方向时的电机编码器值,若对云台有机械改动需要修改
 #define YAW_ECD_GREATER_THAN_4096 0 // ALIGN_ECD值是否大于4096,是为1,否为0;用于计算云台偏转角度
@@ -86,13 +89,14 @@
 #define ONE_BULLET_DELTA_ANGLE 36    // 发射一发弹丸拨盘转动的距离,由机械设计图纸给出
 #define REDUCTION_RATIO_LOADER 36.0f // 2006拨盘电机的减速比,英雄需要修改为3508的19.0f
 #define NUM_PER_CIRCLE 10            // 拨盘一圈的装载量
+// **************************************************************************************************************************************** 以上无用
 // 机器人底盘修改的参数,单位为mm(毫米)
-#define WHEEL_BASE 350                                                    // 纵向轴距(前进后退方向)
-#define WHEEL_TRACK 300                                                   // 横向轮距(左右平移方向)
+#define WHEEL_BASE 360                                                    // 纵向轴距(前进后退方向)
+#define WHEEL_TRACK 400                                                   // 横向轮距(左右平移方向)
 #define CENTER_GIMBAL_OFFSET_X 0                                          // 云台旋转中心距底盘几何中心的距离,左右方向,向右为正方向，云台位于正中心时默认设为0
 #define CENTER_GIMBAL_OFFSET_Y 0                                          // 云台旋转中心距底盘几何中心的距离,前后方向,向左为正方向，云台位于正中心时默认设为0
 #define RADIUS_WHEEL 77                                                   // 轮子半径
-#define REDUCTION_RATIO_WHEEL 19.0f                                       // 电机减速比,因为编码器量测的是转子的速度而不是输出轴的速度故需进行转换
+#define REDUCTION_RATIO_WHEEL 19.0f                                       // 底盘电机减速比,因为编码器量测的是转子的速度而不是输出轴的速度故需进行转换
 #define N2V ((2 * PI * RADIUS_WHEEL) / (REDUCTION_RATIO_WHEEL * 60000.0)) // 电机转子转速转轮子转速
 #define V2N ((REDUCTION_RATIO_WHEEL * 60000.0) / (2 * PI * RADIUS_WHEEL)) // 轮子转速转电机转子转速
 #define SMOOTH_COEF_CHASSIS 0.008f                                        // 底盘电机使用的低通滤波器系数
@@ -301,7 +305,7 @@ typedef struct
 //机械臂反馈数据
 typedef struct
 {
-    Upper_Joint_Data_s joint_data; // 上层机构关节数据
+    Upper_Joint_Data_s joint_data; // 上层机构关节数据,单位:度
     uint8_t action_step;
 } Upper_Upload_Data_s;
 typedef struct

@@ -104,7 +104,6 @@ static void CmdRecvUpdate()
     upper_cmd_send.joint_data.roll_differ = upper_fetch_data.joint_data.roll_differ;
     upper_cmd_send.joint_data.pitch_differ = upper_fetch_data.joint_data.pitch_differ;
     upper_cmd_send.joint_data.lift_dist = upper_fetch_data.joint_data.lift_dist;
-  
 }
 /**
  * @brief 控制输入为遥控器(调试时)的模式和控制量设置
