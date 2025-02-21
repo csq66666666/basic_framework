@@ -29,17 +29,17 @@
 // 机械臂参数
 #define CALI_STEP_TIME 100                                              // 校准时间
 #define ACTION_STEP_TIME 50                                             // 动作完成判断时间
-#define yaw1_MAX 360.0f                                                 // yaw1最大角度(待修改)
-#define yaw1_MIN -360.0f                                                // yaw1轴最小角度(待修改)
+#define yaw1_MAX 112.7f                                                 // yaw1最大角度
+#define yaw1_MIN -172.8f                                                // yaw1轴最小角度
 
-#define yaw2_MAX 360.0f                                                 // yaw2最大角度(待修改)
-#define yaw2_MIN -360.0f                                                // yaw2轴最小角度(待修改)
+#define yaw2_MAX 258.4f                                                 // yaw2最大角度
+#define yaw2_MIN 0.0f                                                   // yaw2轴最小角度
 
 #define yaw3_MAX 360.0f                                                 // yaw3最大角度(待修改)
 #define yaw3_MIN -360.0f                                                // yaw3轴最小角度(待修改)
 
-#define PITCH_DIFFER_MAX 180.0f                                          // pitch_differ轴最大角度
-#define PITCH_DIFFER_MIN -180.0f                                         // pitch_differ轴最小角度
+#define PITCH_DIFFER_MAX 82.0f                                          // pitch_differ轴最大角度
+#define PITCH_DIFFER_MIN -88.8f                                         // pitch_differ轴最小角度
 
 #define GEAR_RATION_YAW1 (16.0f / 64.0f)                                 // yaw1轴齿轮比
 #define GEAR_RATION_YAW2 (16.0f / 36.0f)                                 // yaw2轴齿轮比
@@ -71,7 +71,7 @@
 
 #define LIFT_GEAR_R 31.275f                                             // 抬升齿轮半径
 
-#define LIFT_MAX_DIST 702.2f                                          // 抬升最大距离(待修改)
+#define LIFT_MAX_DIST 723.4f                                            // 抬升最大距离
 
 #define LIFT_DIST_2_ANGLE (360.0f * REDUCTION_RATIO_LIFT / (2.0f * PI * LIFT_GEAR_R))      // 抬升距离转电机角度(可能待修改) // REDUCTION_RATIO_LIFT 原27.0
 

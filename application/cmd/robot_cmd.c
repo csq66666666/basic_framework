@@ -98,7 +98,7 @@ void RobotCMDInit()
  */
 static void CmdRecvUpdate()
 {
-    upper_cmd_send.joint_data.yaw1= upper_fetch_data.joint_data.yaw1;
+    upper_cmd_send.joint_data.yaw1 = upper_fetch_data.joint_data.yaw1;
     upper_cmd_send.joint_data.yaw2 = upper_fetch_data.joint_data.yaw2;
     upper_cmd_send.joint_data.yaw3 = upper_fetch_data.joint_data.yaw3;
     upper_cmd_send.joint_data.roll_differ = upper_fetch_data.joint_data.roll_differ;
@@ -140,8 +140,8 @@ static void RemoteControlSet()
             else if (switch_is_mid(rc_data[TEMP].rc.switch_right)) // 右侧开关状态[中] ，yaw3+差速器
             {
                 upper_cmd_send.joint_data.yaw3 += 0.001f * (float)rc_data[TEMP].rc.rocker_l_;
-                upper_cmd_send.joint_data.roll_differ += 0.001f * (float)rc_data[TEMP].rc.rocker_r_;
-                upper_cmd_send.joint_data.pitch_differ += 0.001f * (float)rc_data[TEMP].rc.rocker_r1;
+                upper_cmd_send.joint_data.roll_differ += 0.001f * (float)rc_data[TEMP].rc.rocker_r_;    // 待改动
+                upper_cmd_send.joint_data.pitch_differ -= 0.001f * (float)rc_data[TEMP].rc.rocker_r1;
             }
         }
         else if (switch_is_down(rc_data[TEMP].rc.switch_left)) // 左侧开关状态为[下]

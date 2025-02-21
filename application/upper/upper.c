@@ -98,7 +98,7 @@ void UpperInit()
             .speed_feedback_source = MOTOR_FEED,
             .outer_loop_type = ANGLE_LOOP,
             .close_loop_type = SPEED_LOOP | ANGLE_LOOP,
-            .motor_reverse_flag = MOTOR_DIRECTION_NORMAL,
+            .motor_reverse_flag = MOTOR_DIRECTION_REVERSE,  // 电机反装
         },
         .motor_type = M3508,
     };
@@ -120,6 +120,8 @@ void UpperInit()
     upper_motor_config.controller_param_init_config.speed_PID.Kd = 0;
     upper_motor_config.controller_param_init_config.speed_PID.IntegralLimit = 2000;
     upper_motor_config.controller_param_init_config.speed_PID.MaxOut = 15000;
+
+    upper_motor_config.controller_setting_init_config.motor_reverse_flag = MOTOR_DIRECTION_NORMAL;  // 电机正装
 
     upper_yaw1_motor = DJIMotorInit(&upper_motor_config);
     upper_yaw1_motor->measure.init_flag = 1;
@@ -160,7 +162,7 @@ void UpperInit()
     upper_motor_config.controller_param_init_config.speed_PID.IntegralLimit = 3000;
     upper_motor_config.controller_param_init_config.speed_PID.MaxOut = 15000;
 
-    upper_motor_config.controller_setting_init_config.motor_reverse_flag = MOTOR_DIRECTION_REVERSE;
+    upper_motor_config.controller_setting_init_config.motor_reverse_flag = MOTOR_DIRECTION_NORMAL;
     upper_motor_config.motor_type = M2006;
     upper_yaw3_motor = DJIMotorInit(&upper_motor_config);
     upper_yaw3_motor->measure.init_flag = 1;
@@ -181,7 +183,7 @@ void UpperInit()
     upper_motor_config.controller_param_init_config.speed_PID.IntegralLimit = 2000;
     upper_motor_config.controller_param_init_config.speed_PID.MaxOut = 15000;
 
-    upper_motor_config.controller_setting_init_config.motor_reverse_flag = MOTOR_DIRECTION_REVERSE;
+    upper_motor_config.controller_setting_init_config.motor_reverse_flag = MOTOR_DIRECTION_NORMAL;
     upper_motor_config.motor_type = M2006;
     upper_differ_motor_l = DJIMotorInit(&upper_motor_config);
     upper_differ_motor_l->measure.init_flag = 1;
@@ -246,7 +248,7 @@ static void UpperZeroForceMode()
 }
 
 /**
- * @brief 将关节数据换算成电机输出数据
+ * @brief 将关节数据换算成电机输出数据，从而设定电机参考值
  *
  */
 static void UpperCalculate()
@@ -340,7 +342,7 @@ static void UpperCaliMode()
             }
         }
     }
-    else if (action_step == 2)
+    else if (action_step == 4)
     {
         // yaw1
         if (action_finish_flag == 0 && action_flag == 0) // step 1
@@ -430,7 +432,7 @@ static void UpperCaliMode()
             }
         }
     }
-    else if (action_step == 4)
+    else if (action_step == 2)
     { // yaw3
         if (action_finish_flag == 0 && action_flag == 0)
         {
@@ -482,15 +484,15 @@ static void UpperCaliMode()
             action_flag = 1;
             UpperCalculate();
             DJIMotorOuterLoop(upper_lift_motor, SPEED_LOOP);
-            upper_lift_motor->motor_controller.speed_PID.MaxOut = 1500;
+            upper_lift_motor->motor_controller.speed_PID.MaxOut = 1500;// 1.5A过小，待修改
             upper_lift_op = -15000;
         }
         else if (action_flag == 0) // step 3
         {
             action_flag = 1;
             DJIMotorOuterLoop(upper_lift_motor, ANGLE_LOOP);
-            upper_lift_motor->motor_controller.angle_PID.MaxOut = 4000; // 防止回来过程中yaw运动太快
-            upper_solve.lift_dist = upper_feedback_data.joint_data.lift_dist - 200;
+            upper_lift_motor->motor_controller.angle_PID.MaxOut = 4000; // 防止回来过程中yaw运动太快，有点小
+            upper_solve.lift_dist = upper_feedback_data.joint_data.lift_dist - 200;// 200这个高度待debug测量
             UpperCalculate();
         }
 
@@ -615,7 +617,7 @@ void UpperTask()
 void UpperJointConstrain(Upper_Joint_Data_s *joint_data)
 {
     joint_data->yaw1 = float_constrain(joint_data->yaw1, yaw1_MIN, yaw1_MAX);
-    joint_data->yaw2 = float_constrain(joint_data->yaw2, yaw2_MIN, yaw2_MIN);
+    joint_data->yaw2 = float_constrain(joint_data->yaw2, yaw2_MIN, yaw2_MAX);
     joint_data->pitch_differ = float_constrain(joint_data->pitch_differ, PITCH_DIFFER_MIN, PITCH_DIFFER_MAX);
     joint_data->lift_dist = float_constrain(joint_data->lift_dist, 0, LIFT_MAX_SAFE_DIST);
     joint_data->yaw3 = float_constrain(joint_data->yaw3, yaw3_MIN, yaw3_MAX);
