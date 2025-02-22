@@ -141,7 +141,7 @@ static void RemoteControlSet()
             {
                 upper_cmd_send.joint_data.yaw3 += 0.001f * (float)rc_data[TEMP].rc.rocker_l_;
                 upper_cmd_send.joint_data.roll_differ += 0.001f * (float)rc_data[TEMP].rc.rocker_r_;    // 待改动
-                upper_cmd_send.joint_data.pitch_differ -= 0.001f * (float)rc_data[TEMP].rc.rocker_r1;
+                upper_cmd_send.joint_data.pitch_differ += 0.001f * (float)rc_data[TEMP].rc.rocker_r1;
             }
         }
         else if (switch_is_down(rc_data[TEMP].rc.switch_left)) // 左侧开关状态为[下]
@@ -158,7 +158,7 @@ static void RemoteControlSet()
         // 真空泵控制,拨轮向上打为负,向下为正
         if (rc_data[TEMP].rc.dial < -100) // 向上打开/关闭真空泵
         {
-            chassis_cmd_send.pump_mode = VALVE_ARM | VALVE_T1 | VALVE_T2 | VALVE_T3;
+            chassis_cmd_send.pump_mode = VALVE_ARM1 | VALVE_ARM2 | VALVE_T1 | VALVE_T2;
         }
         else if (rc_data[TEMP].rc.dial > 100)
         {
@@ -204,6 +204,116 @@ static void RemoteControlSet()
  */
 static void MouseKeySet()
 {
+
+/**************************************************   此处为动作组   **************************************************/
+    
+    // ctrl + shift + F 键进入取另一矿仓模式
+    if (rc_data[TEMP].key[KEY_PRESS].f && rc_data[TEMP].key[KEY_PRESS].ctrl && rc_data[TEMP].key[KEY_PRESS].shift)
+    {
+        upper_cmd_send.upper_mode = UPPER_GET_SLIVER_MINING_2;
+    }
+    // shift + F 键进入取矿仓银矿模式
+    else if (rc_data[TEMP].key[KEY_PRESS_WITH_SHIFT].f)
+    {
+        upper_cmd_send.upper_mode = UPPER_GET_SLIVER_MINING_1;
+    }
+    // 单击 F 键进入小资源岛一位双矿模式
+    else if (rc_data[TEMP].key[KEY_PRESS].f)
+    {
+        upper_cmd_send.upper_mode = UPPER_TWO_SLIVER_MINING;
+    }
+
+    // 单击 G 键进入大资源岛取矿模式
+    if (rc_data[TEMP].key[KEY_PRESS].g)
+    {
+        upper_cmd_send.upper_mode = UPPER_GLOD_MINING;
+    }
+
+    // 单击 C 键进入取单银矿，地面矿模式
+    if (rc_data[TEMP].key[KEY_PRESS].c)
+    {
+        upper_cmd_send.upper_mode = UPPER_SLIVER_MINING;
+    }
+
+    // 单击 V 键进入自定义控制器兑矿模式
+    if (rc_data[TEMP].key[KEY_PRESS].v)
+    {
+        upper_cmd_send.upper_mode = UPPER_EXCHANGE;
+        upper_cmd_send.joint_data.lift_dist = upper_fetch_data.joint_data.lift_dist;    // 视自定义控制器抬升设计情况而决定是否保留此句
+    }
+
+/**************************************************   此处为单个器件控制   **************************************************/
+
+    // 这里由于优先级原因泵控制必须要在模式控制之前以强制覆盖
+    // shift + R 关闭真空泵
+    if (rc_data[TEMP].key[KEY_PRESS_WITH_SHIFT].r)
+        chassis_cmd_send.pump_mode = VALVE_ALL_CLOSE;
+    // 单击 R 键打开真空泵 
+    else if (rc_data[TEMP].key[KEY_PRESS].r)
+        chassis_cmd_send.pump_mode |= VALVE_ARM1 | VALVE_ARM2 | VALVE_T1 | VALVE_T2;
+    
+/**************************************************   此处为模式控制任务   **************************************************/
+
+    if (upper_cmd_send.upper_mode == UPPER_SLIVER_MINING) // 单银矿石，地矿
+    {
+        chassis_cmd_send.chassis_mode = CHASSIS_MINING;
+
+        if (rc_data[TEMP].key[KEY_PRESS_WITH_CTRL].x) // 退出模式
+            upper_cmd_send.stop_flag = 1;
+        else if (rc_data[TEMP].key[KEY_PRESS].c && upper_fetch_data.action_step == 2) // 再次单击 F 键继续执行
+            upper_cmd_send.cfm_flag = 1;
+
+        // 该动作执行结束后再将flag置位，防止在多次循环中不能重复进入动作组判断
+        if (upper_fetch_data.action_step != 2)
+            upper_cmd_send.cfm_flag = 0;
+
+        // 任务执行结束
+        if (upper_fetch_data.action_step == 0)
+        {
+            upper_cmd_send.stop_flag = 0;
+            upper_cmd_send.upper_mode = UPPER_NO_MOVE;
+            CmdRecvUpdate();
+        }
+    }
+    else if (upper_cmd_send.upper_mode == UPPER_TWO_SLIVER_MINING) // 一位双矿
+    {
+        chassis_cmd_send.chassis_mode = CHASSIS_MINING;
+        chassis_cmd_send.pump_mode = VALVE_ARM1 | VALVE_ARM2 | VALVE_T1 | VALVE_T2;
+
+        if (rc_data[TEMP].key[KEY_PRESS_WITH_CTRL].x) // 退出模式
+            upper_cmd_send.stop_flag = 1;
+        else if (rc_data[TEMP].key[KEY_PRESS].f && upper_fetch_data.action_step == 2) // 再次单击 F 键继续执行
+        {
+            upper_cmd_send.cfm_flag = 1;
+        }
+        else if (rc_data[TEMP].key[KEY_PRESS].f && upper_fetch_data.action_step == 4) // 再次单击 F 键继续执行
+        {
+            upper_cmd_send.cfm_flag = 2;
+        }
+        else if (rc_data[TEMP].key[KEY_PRESS].f && upper_fetch_data.action_step == 5) // 再次单击 F 键继续执行
+        {
+            chassis_cmd_send.pump_mode =  VALVE_T1 | VALVE_T2;
+            upper_cmd_send.cfm_flag = 3;
+        }
+            
+
+        if (upper_fetch_data.action_step != 3 && upper_fetch_data.action_step != 5)
+            upper_cmd_send.cfm_flag = 0;
+        // 该动作执行结束后再将flag置位，防止在多次循环中不能重复进入动作组判断
+        // 任务执行结束
+        if (upper_fetch_data.action_step == 0)
+        {
+            chassis_cmd_send.chassis_mode = CHASSIS_NORMAL;
+            upper_cmd_send.stop_flag = 0;
+            upper_cmd_send.upper_mode = UPPER_NO_MOVE;
+            CmdRecvUpdate();
+        }
+    }
+
+
+
+
+
 }
 
 /**

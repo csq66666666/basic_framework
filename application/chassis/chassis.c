@@ -305,10 +305,10 @@ static void AccelLimit()
  */
 static void ElecSwitchControl()
 {
-    (chassis_cmd_recv.pump_mode & VALVE_ARM) ? ElecSwitchSet(valve_1) : ElecSwitchReset(valve_1);
-    (chassis_cmd_recv.pump_mode & VALVE_T1) ? ElecSwitchSet(valve_2) : ElecSwitchReset(valve_2);
-    (chassis_cmd_recv.pump_mode & VALVE_T2) ? ElecSwitchSet(valve_3) : ElecSwitchReset(valve_3);
-    (chassis_cmd_recv.pump_mode & VALVE_T3) ? ElecSwitchSet(valve_4) : ElecSwitchReset(valve_4);
+    (chassis_cmd_recv.pump_mode & VALVE_ARM1) ? ElecSwitchSet(valve_1) : ElecSwitchReset(valve_1);
+    (chassis_cmd_recv.pump_mode & VALVE_ARM2) ? ElecSwitchSet(valve_2) : ElecSwitchReset(valve_2);
+    (chassis_cmd_recv.pump_mode & VALVE_T1) ? ElecSwitchSet(valve_3) : ElecSwitchReset(valve_3);
+    (chassis_cmd_recv.pump_mode & VALVE_T2) ? ElecSwitchSet(valve_4) : ElecSwitchReset(valve_4);
     chassis_cmd_recv.pump_mode ? ElecSwitchSet(pump1) : ElecSwitchReset(pump1);
     chassis_cmd_recv.pump_mode ? ElecSwitchSet(pump2) : ElecSwitchReset(pump2);
 }

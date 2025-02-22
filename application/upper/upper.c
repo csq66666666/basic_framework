@@ -47,7 +47,7 @@ attitude_t *Upper_IMU_data;
             fabsf(upper_yaw3_motor->measure.speed_aps) < 100 &&    \
             fabsf(upper_differ_motor_l->measure.speed_aps) < 100 && \
             fabsf(upper_differ_motor_r->measure.speed_aps) < 100 && \
-            fabsf(upper_lift_motor->measure.speed_aps) < 100 &&   \
+            fabsf(upper_lift_motor->measure.speed_aps) < 100   \
             )                                                      \
         {                                                           \
             (cmd_time)++;                                           \
@@ -183,7 +183,7 @@ void UpperInit()
     upper_motor_config.controller_param_init_config.speed_PID.IntegralLimit = 2000;
     upper_motor_config.controller_param_init_config.speed_PID.MaxOut = 15000;
 
-    upper_motor_config.controller_setting_init_config.motor_reverse_flag = MOTOR_DIRECTION_NORMAL;
+    upper_motor_config.controller_setting_init_config.motor_reverse_flag = MOTOR_DIRECTION_REVERSE;
     upper_motor_config.motor_type = M2006;
     upper_differ_motor_l = DJIMotorInit(&upper_motor_config);
     upper_differ_motor_l->measure.init_flag = 1;
@@ -191,7 +191,7 @@ void UpperInit()
     // 差速器右侧电机
     upper_motor_config.can_init_config.can_handle = &hcan1;
     upper_motor_config.can_init_config.tx_id = 6;
-    upper_motor_config.controller_setting_init_config.motor_reverse_flag = MOTOR_DIRECTION_NORMAL;
+    upper_motor_config.controller_setting_init_config.motor_reverse_flag = MOTOR_DIRECTION_REVERSE;
     upper_differ_motor_r = DJIMotorInit(&upper_motor_config);
     upper_differ_motor_r->measure.init_flag = 1;
 
@@ -208,8 +208,8 @@ static void UpperFeedUpdata()
     upper_feedback_data.joint_data.yaw1 = (upper_yaw1_motor->measure.total_angle - upper_yaw1_motor->measure.init_angle) * ROTOR_2_SHAFT_YAW1;
     upper_feedback_data.joint_data.yaw2 = (upper_yaw2_motor->measure.total_angle - upper_yaw2_motor->measure.init_angle) * ROTOR_2_SHAFT_YAW2;
     upper_feedback_data.joint_data.yaw3 = (upper_yaw3_motor->measure.total_angle - upper_yaw3_motor->measure.init_angle) * ROTOR_2_SHAFT_YAW3;
-    upper_feedback_data.joint_data.roll_differ = (((upper_differ_motor_r->measure.total_angle - upper_differ_motor_r->measure.init_angle) - (-1.0f * upper_differ_motor_l->measure.total_angle + upper_differ_motor_l->measure.init_angle)) / 2.0f * GEAR_RATION_DIFFER) * ROTOR_2_SHAFT_ROLL_DIFFER;
-    upper_feedback_data.joint_data.pitch_differ = (((upper_differ_motor_r->measure.total_angle - upper_differ_motor_r->measure.init_angle) + (-1.0f * upper_differ_motor_l->measure.total_angle + upper_differ_motor_l->measure.init_angle)) / 2.0f) * ROTOR_2_SHAFT_PITCH_DIFFER; // 电机反装，测量值需要取反
+    upper_feedback_data.joint_data.roll_differ = (((upper_differ_motor_r->measure.total_angle - upper_differ_motor_r->measure.init_angle) - (upper_differ_motor_l->measure.total_angle - upper_differ_motor_l->measure.init_angle)) / 2.0f * GEAR_RATION_DIFFER) * ROTOR_2_SHAFT_ROLL_DIFFER; // 电机反装，测量的初始值需要取反
+    upper_feedback_data.joint_data.pitch_differ = -(((upper_differ_motor_r->measure.total_angle - upper_differ_motor_r->measure.init_angle) + (upper_differ_motor_l->measure.total_angle - upper_differ_motor_l->measure.init_angle)) / 2.0f) * ROTOR_2_SHAFT_PITCH_DIFFER; // 电机反装，测量值需要取反
 
     upper_feedback_data.joint_data.lift_dist = ((upper_lift_motor->measure.total_angle - upper_lift_motor->measure.init_angle)) / LIFT_DIST_2_ANGLE;
 
@@ -256,8 +256,8 @@ static void UpperCalculate()
     upper_yaw1_op = upper_solve.yaw1 * SHAFT_2_ROTOR_YAW1 + upper_yaw1_motor->measure.init_angle;
     upper_yaw2_op = upper_solve.yaw2 * SHAFT_2_ROTOR_YAW2 + upper_yaw2_motor->measure.init_angle;
     upper_yaw3_op = upper_solve.yaw3 * SHAFT_2_ROTOR_YAW3 + upper_yaw3_motor->measure.init_angle;
-    upper_differ_l_op = (upper_solve.pitch_differ - upper_solve.roll_differ / GEAR_RATION_DIFFER) * SHAFT_2_ROTOR_ROLL_DIFFER - upper_differ_motor_l->measure.init_angle; // 电机反装，测量的初始值需要取反
-    upper_differ_r_op = (upper_solve.pitch_differ + upper_solve.roll_differ / GEAR_RATION_DIFFER) * SHAFT_2_ROTOR_ROLL_DIFFER + upper_differ_motor_r->measure.init_angle;
+    upper_differ_l_op = (upper_solve.pitch_differ + upper_solve.roll_differ / GEAR_RATION_DIFFER) * SHAFT_2_ROTOR_ROLL_DIFFER - upper_differ_motor_l->measure.init_angle; // 电机反装，测量的初始值需要取反
+    upper_differ_r_op = (upper_solve.pitch_differ - upper_solve.roll_differ / GEAR_RATION_DIFFER) * SHAFT_2_ROTOR_ROLL_DIFFER + upper_differ_motor_r->measure.init_angle; // 电机反装，测量的初始值需要取反
     upper_lift_op = upper_solve.lift_dist * LIFT_DIST_2_ANGLE - upper_lift_motor->measure.init_angle; // 电机反装，测量的初始值需要取反
 }
 
@@ -485,7 +485,7 @@ static void UpperCaliMode()
             UpperCalculate();
             DJIMotorOuterLoop(upper_lift_motor, SPEED_LOOP);
             upper_lift_motor->motor_controller.speed_PID.MaxOut = 1500;// 1.5A过小，待修改
-            upper_lift_op = -15000;
+            upper_lift_op = 15000;
         }
         else if (action_flag == 0) // step 3
         {
@@ -502,16 +502,51 @@ static void UpperCaliMode()
 
             if (cali_time > CALI_STEP_TIME)
             {
-                cali_time = 0;
-                action_flag = 0;
-                action_step++;
-                DJIMotorStop(upper_lift_motor);
-                DWT_Delay(1);
-                upper_lift_motor->measure.init_flag = 1;
-                DJIMotorOuterLoop(upper_lift_motor, ANGLE_LOOP);
-                upper_solve.lift_dist = 0;
+                if (action_finish_flag == 0)  // step 2
+                {
+                    cali_time = 0;
+                    action_flag = 0;
+                    action_finish_flag = 1;
+                    upper_lift_motor->measure.init_flag = 1;
+                }
+                else  // step 4
+                {
+                    cali_time = 0;
+                    action_flag = 0;
+                    action_finish_flag = 0;
+                    action_step ++;
+                    upper_lift_motor->measure.init_flag = 1;
+                    upper_solve.lift_dist = 0;
+                    // UpperCalculate(); // 此时init_flag还未被置位
+                }
             }
         }
+
+        // if (action_finish_flag == 0 && action_flag == 0) // 第一步
+        // {
+        //     action_flag = 1;
+        //     UpperCalculate();
+        //     DJIMotorOuterLoop(upper_lift_motor, SPEED_LOOP);
+        //     upper_lift_motor->motor_controller.speed_PID.MaxOut = 1500;
+        //     upper_lift_op = -15000;
+        // }
+
+        // if (fabsf(upper_lift_motor->measure.speed_aps) < 100) // 等待堵转检测
+        // {
+        //     cali_time++;
+
+        //     if (cali_time > CALI_STEP_TIME)
+        //     {
+        //         cali_time = 0;
+        //         action_flag = 0;
+        //         action_step ++;
+        //         DJIMotorStop(upper_lift_motor);
+        //         DWT_Delay(1);
+        //         upper_lift_motor->measure.init_flag = 1;
+        //         DJIMotorOuterLoop(upper_lift_motor, ANGLE_LOOP);
+        //         upper_solve.lift_dist = 0;
+        //     }
+        // }
     }
     else if (action_step == 6)
     {
@@ -562,6 +597,93 @@ static void UpperSingleMode()
 }
 
 /**
+ * @brief 一位双银矿模式
+ *
+ */
+static void UpperTwoSliverMiningMode()
+{
+    static uint16_t cali_time = 0;
+
+    upper_yaw1_motor->motor_controller.angle_PID.MaxOut = 1500; //大yaw限幅f'f'f'f'f'f'f'f'f'f'f'f'f'f'f'f
+
+    switch (action_step)
+    {
+    case 1:
+        // 第一步 展开机械臂
+
+        upper_solve.lift_dist = 245.0f;
+        upper_solve.yaw3 = 0.0f;
+        upper_solve.yaw2 = 34.5f;
+        upper_solve.yaw1 = 61.3f;
+        upper_solve.pitch_differ = 82.0f;
+
+        break;
+    case 2:
+        upper_solve.pitch_differ = upper_cmd_recv.joint_data.pitch_differ;// 为啥要加这句？
+        if (upper_cmd_recv.cfm_flag == 1)
+            // 第二步 抓取矿石：lift向下、吸住矿石
+            upper_solve.lift_dist = 0.0f;
+        break;
+    case 3:
+        // 第三步：吸稳矿石后升起
+        upper_solve.lift_dist = 420.0f;
+        break;
+    case 4:
+        // 第四步：存放在矿仓中
+        if (upper_cmd_recv.cfm_flag == 2)
+        {
+            upper_solve.yaw2 = 0.0f;
+            upper_solve.yaw1 = -91.0f;
+            upper_solve.lift_dist = 322.0f;
+        }
+        break;
+    case 5:
+        if (upper_cmd_recv.cfm_flag == 3)
+        {
+            upper_solve.lift_dist = 420.0f;
+        }
+        break;
+    case 6:
+        upper_solve.yaw3 = 0.0f;
+        upper_solve.yaw2 = 0.0f;
+        upper_solve.yaw1 = 0.0f;
+        upper_solve.pitch_differ = 0.0f;
+        break;
+    case 7:
+        upper_solve.lift_dist = 0.0f;
+        break;
+    default:
+        action_step = 0;
+
+        break;
+    }
+
+    if (upper_cmd_recv.stop_flag == 0)
+    {
+        if ((action_step != 0) && (action_step != 2) && (action_step != 4) && (action_step != 5))
+        {
+            ActionFinishJudge(action_step, cali_time, 1, ACTION_STEP_TIME);
+        }
+        else if ((action_step == 2) && (upper_cmd_recv.cfm_flag == 1))
+        {
+            ActionFinishJudge(action_step, cali_time, 1, CALI_STEP_TIME);
+        }
+        else if((action_step == 4) && (upper_cmd_recv.cfm_flag == 2))
+        {
+            ActionFinishJudge(action_step, cali_time, 1, CALI_STEP_TIME);
+        }
+        else if((action_step == 5) && (upper_cmd_recv.cfm_flag == 3))
+        {
+            ActionFinishJudge(action_step, cali_time, 1, CALI_STEP_TIME);
+        }
+    }
+    else
+    {
+        ActionFinishJudge(action_step, cali_time, 0, ACTION_STEP_TIME);
+    }
+}
+
+/**
  * @brief 根据模式选择控制方式
  *
  */
@@ -583,6 +705,9 @@ static void UpperModeControl()
         break;
     case UPPER_SINGLE_MOTOR:
         UpperSingleMode();
+        break;
+    case UPPER_TWO_SLIVER_MINING:
+        UpperTwoSliverMiningMode();
         break;
     default:
         break;
