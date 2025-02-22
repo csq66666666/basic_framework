@@ -60,9 +60,9 @@
 #define ROTOR_2_SHAFT_ROLL_DIFFER (1.0f / REDUCTION_RATIO_DIFFER)       // 电机转子角度转换到差速器roll轴角度
 #define ROTOR_2_SHAFT_PITCH_DIFFER (1.0f / REDUCTION_RATIO_DIFFER)      // 电机转子角度转换到差速器pitch轴角度
 
-#define SHAFT_2_ROTOR_YAW1 (REDUCTION_RATIO_YAW1 / GEAR_RATION_YAW1)       // yaw1轴角度转换到电机转子角度
-#define SHAFT_2_ROTOR_YAW2 (REDUCTION_RATIO_YAW2 / GEAR_RATION_YAW2)       // yaw2轴角度转换到电机转子角度
-#define SHAFT_2_ROTOR_YAW3 (REDUCTION_RATIO_YAW3 / GEAR_RATION_YAW3)       // yaw3轴角度转换到电机转子角度
+#define SHAFT_2_ROTOR_YAW1 -(REDUCTION_RATIO_YAW1 / GEAR_RATION_YAW1)       // yaw1轴角度转换到电机转子角度 // yaw1齿轮传动反向
+#define SHAFT_2_ROTOR_YAW2 -(REDUCTION_RATIO_YAW2 / GEAR_RATION_YAW2)       // yaw2轴角度转换到电机转子角度 // yaw2齿轮传动反向
+#define SHAFT_2_ROTOR_YAW3 -(REDUCTION_RATIO_YAW3 / GEAR_RATION_YAW3)       // yaw3轴角度转换到电机转子角度 // yaw3齿轮传动反向
 
 #define SHAFT_2_ROTOR_ROLL_DIFFER REDUCTION_RATIO_DIFFER                // 差速器roll轴角度转换到电机转子角度
 #define SHAFT_2_ROTOR_PITCH_DIFFER REDUCTION_RATIO_DIFFER               // 差速器pitch轴角度转换到电机转子角度

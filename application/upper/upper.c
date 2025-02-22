@@ -23,7 +23,7 @@ static DJIMotorInstance *upper_yaw1_motor, *upper_yaw2_motor, *upper_yaw3_motor,
 static float upper_yaw1_op, upper_yaw2_op, upper_yaw3_op, upper_differ_l_op, upper_differ_r_op; // 机械臂电机输出数据,用于设定电机参考值
 static float upper_lift_op;                                                                     // 抬升电机输出数据,用于设定电机参考值
 static upper_mode_e upper_last_mode;                                                            // 上一次的模式
-static Upper_Joint_Data_s upper_solve;                                                          // 上层机构所有关节数据,由cmd发送或程序自行修改
+static Upper_Joint_Data_s upper_solve;                                                          // 上层机构所有关节数据,由cmd发送或程序自行修改，逆时针，向上为正，可直接用于正逆运动学解算
 // static Upper_Kine_s Upper_Kine;                                                                     // 运动学数据
 static uint8_t action_finish_flag;
 static uint8_t action_step = 0;
@@ -588,9 +588,9 @@ static void UpperOutput()
  */
 static void UpperSingleMode()
 {
-    upper_solve.yaw1 = upper_cmd_recv.joint_data.yaw1;
-    upper_solve.yaw2 = upper_cmd_recv.joint_data.yaw2;
-    upper_solve.yaw3 = upper_cmd_recv.joint_data.yaw3;
+    upper_solve.yaw1 = -upper_cmd_recv.joint_data.yaw1; // yaw1轴转向与电机输出轴转向相反
+    upper_solve.yaw2 = -upper_cmd_recv.joint_data.yaw2; // yaw2轴转向与电机输出轴转向相反
+    upper_solve.yaw3 = -upper_cmd_recv.joint_data.yaw3; // yaw3轴转向与电机输出轴转向相反
     upper_solve.pitch_differ = upper_cmd_recv.joint_data.pitch_differ;
     upper_solve.roll_differ = upper_cmd_recv.joint_data.roll_differ;
     upper_solve.lift_dist = upper_cmd_recv.joint_data.lift_dist;
@@ -604,7 +604,7 @@ static void UpperTwoSliverMiningMode()
 {
     static uint16_t cali_time = 0;
 
-    upper_yaw1_motor->motor_controller.angle_PID.MaxOut = 1500; //大yaw限幅f'f'f'f'f'f'f'f'f'f'f'f'f'f'f'f
+    upper_yaw1_motor->motor_controller.angle_PID.MaxOut = 1500; //大yaw限幅
 
     switch (action_step)
     {
