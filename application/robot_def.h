@@ -19,8 +19,8 @@
 
 /* 开发板类型定义,烧录时注意不要弄错对应功能;修改定义后需要重新编译,只能存在一个定义! */
 // #define ONE_BOARD // 单板控制整车
-// #define CHASSIS_BOARD //底盘板
-#define GIMBAL_BOARD  //云台板
+// #define CHASSIS_BOARD // 底盘板
+#define GIMBAL_BOARD  // 云台板
 
 #define VISION_USE_VCP // 使用虚拟串口发送视觉数据
 // #define VISION_USE_UART // 使用串口发送视觉数据
@@ -108,11 +108,17 @@
 #define GYRO2GIMBAL_DIR_ROLL 1  // 陀螺仪数据相较于云台的roll的方向,1为相同,-1为相反
 
 // 电磁阀状态
-#define VALVE_ALL_CLOSE ((uint8_t)0b0000)  // 关闭全部阀门
-#define VALVE_ARM1 ((uint8_t)0b1000)       // 选中机械臂第一路阀门
-#define VALVE_ARM2 ((uint8_t)0b0100)       // 选中机械臂第二路阀门
-#define VALVE_T1 ((uint8_t)0b0010)         // 选中矿仓第一路阀门
-#define VALVE_T2 ((uint8_t)0b0001)         // 选中矿仓第二路阀门
+#define VALVE_ALL_CLOSE     ((uint8_t)0b0000)  // 关闭全部阀门
+
+#define VALVE_ARM1          ((uint8_t)0b1000)       // 选中机械臂第一路阀门
+#define VALVE_ARM2          ((uint8_t)0b0100)       // 选中机械臂第二路阀门
+#define VALVE_T1            ((uint8_t)0b0010)       // 选中矿仓第一路阀门
+#define VALVE_T2            ((uint8_t)0b0001)       // 选中矿仓第二路阀门
+
+#define VALVE_ARM_ALL_OPEN  ((uint8_t)0b1100)       // 选中机械臂所有阀门
+#define VALVE_T_ALL_OPEN    ((uint8_t)0b0011)       // 选中矿仓所有阀门
+
+#define VALVE_ALL_OPEN      ((uint8_t)0b1111)       // 选中所有阀门
 
 // 检查是否出现主控板定义冲突,只允许一个开发板定义存在,否则编译会自动报错
 #if (defined(ONE_BOARD) && defined(CHASSIS_BOARD)) || \
@@ -168,10 +174,11 @@ typedef enum
     UPPER_SINGLE_MOTOR,            // 单电机控制模式
     UPPER_SLIVER_MINING,           // 开采银矿，取地矿模式
     UPPER_TWO_SLIVER_MINING,       // 一键开采两个银矿模式
-    UPPER_GET_SLIVER_MINING_1,     // 一键衔接矿仓银矿模式1
-    UPPER_GET_SLIVER_MINING_2,     // 一键衔接矿仓银矿模式2
+    UPPER_FETCH_ORE_1,             // 取出矿仓矿石模式1
+    UPPER_FETCH_ORE_2,             // 取出矿仓矿石模式2
     UPPER_GLOD_MINING,             // 开采金矿模式
-    UPPER_GET_GLOD_MINING,         // 衔接金矿模式
+    UPPER_STORAGE_ORE_1,           // 存放进矿仓1模式
+    UPPER_STORAGE_ORE_2,           // 存放进矿仓2模式
     UPPER_EXCHANGE,                // 兑换模式
 } upper_mode_e;
 

@@ -253,9 +253,9 @@ static void UpperZeroForceMode()
  */
 static void UpperCalculate()
 {
-    upper_yaw1_op = upper_solve.yaw1 * SHAFT_2_ROTOR_YAW1 + upper_yaw1_motor->measure.init_angle;
-    upper_yaw2_op = upper_solve.yaw2 * SHAFT_2_ROTOR_YAW2 + upper_yaw2_motor->measure.init_angle;
-    upper_yaw3_op = upper_solve.yaw3 * SHAFT_2_ROTOR_YAW3 + upper_yaw3_motor->measure.init_angle;
+    upper_yaw1_op = upper_solve.yaw1 * SHAFT_2_ROTOR_YAW1 + upper_yaw1_motor->measure.init_angle; // yaw1轴转向与电机输出轴转向相反，宏SHAFT_2_ROTOR_YAW1取值为负
+    upper_yaw2_op = upper_solve.yaw2 * SHAFT_2_ROTOR_YAW2 + upper_yaw2_motor->measure.init_angle; // yaw2轴转向与电机输出轴转向相反，宏SHAFT_2_ROTOR_YAW2取值为负
+    upper_yaw3_op = upper_solve.yaw3 * SHAFT_2_ROTOR_YAW3 + upper_yaw3_motor->measure.init_angle; // yaw3轴转向与电机输出轴转向相反，宏SHAFT_2_ROTOR_YAW3取值为负
     upper_differ_l_op = (upper_solve.pitch_differ + upper_solve.roll_differ / GEAR_RATION_DIFFER) * SHAFT_2_ROTOR_ROLL_DIFFER - upper_differ_motor_l->measure.init_angle; // 电机反装，测量的初始值需要取反
     upper_differ_r_op = (upper_solve.pitch_differ - upper_solve.roll_differ / GEAR_RATION_DIFFER) * SHAFT_2_ROTOR_ROLL_DIFFER + upper_differ_motor_r->measure.init_angle; // 电机反装，测量的初始值需要取反
     upper_lift_op = upper_solve.lift_dist * LIFT_DIST_2_ANGLE - upper_lift_motor->measure.init_angle; // 电机反装，测量的初始值需要取反
@@ -597,6 +597,61 @@ static void UpperSingleMode()
 }
 
 /**
+ * @brief 一位单银矿模式
+ *
+ */
+static void UpperSliverMiningMode()
+{
+    static uint16_t cali_time = 0;
+
+    switch (action_step)
+    {
+    case 1:
+        // 第一步 打开抬升防止干涉
+        upper_solve.lift_dist = 0.0f;
+        break;
+    case 2:
+        // 第二步 展开机械臂
+        upper_solve.yaw1 = 0.0f;                                //
+        upper_solve.yaw2 = 0.0f;                                //
+        upper_solve.yaw3 = 0.0f;                                //
+        upper_solve.pitch_differ = 0.0f;                        //
+        upper_solve.roll_differ = 0.0f;                         //
+        break;
+    case 3:
+        upper_solve.lift_dist = 0.0f;                           // 抬升归位
+        upper_solve.pitch_differ = upper_cmd_recv.joint_data.pitch_differ;  // 为啥要加这句？
+        if (upper_cmd_recv.cfm_flag == 1)
+        // 第三步 抓取矿石：lift向下、吸住矿石
+            upper_solve.lift_dist = 0.0f;                       //
+        break;
+    case 4:
+        // 第四步：吸稳矿石后升起
+        upper_solve.lift_dist = 0.0f;                           //
+        break;
+    default:
+        action_step = 0;
+        break;
+    }
+
+    if (upper_cmd_recv.stop_flag == 0)
+    {
+        if ((action_step != 0) && (action_step != 3))
+        {
+            ActionFinishJudge(action_step, cali_time, 1, ACTION_STEP_TIME);
+        }
+        else if ((action_step == 3) && (upper_cmd_recv.cfm_flag == 1))
+        {
+            ActionFinishJudge(action_step, cali_time, 1, CALI_STEP_TIME);
+        }
+    }
+    else
+    {
+        ActionFinishJudge(action_step, cali_time, 0, ACTION_STEP_TIME);
+    }
+}
+
+/**
  * @brief 一位双银矿模式
  *
  */
@@ -609,27 +664,27 @@ static void UpperTwoSliverMiningMode()
     switch (action_step)
     {
     case 1:
-        // 第一步 展开机械臂
-
+        // 第一步 打开抬升防止干涉
         upper_solve.lift_dist = 245.0f;
+    case 2:
+        // 第二步 展开机械臂
         upper_solve.yaw3 = 0.0f;
         upper_solve.yaw2 = 34.5f;
         upper_solve.yaw1 = 61.3f;
         upper_solve.pitch_differ = 82.0f;
-
-        break;
-    case 2:
-        upper_solve.pitch_differ = upper_cmd_recv.joint_data.pitch_differ;// 为啥要加这句？
-        if (upper_cmd_recv.cfm_flag == 1)
-            // 第二步 抓取矿石：lift向下、吸住矿石
-            upper_solve.lift_dist = 0.0f;
         break;
     case 3:
-        // 第三步：吸稳矿石后升起
-        upper_solve.lift_dist = 420.0f;
+        upper_solve.pitch_differ = upper_cmd_recv.joint_data.pitch_differ; // 为啥要加这句？
+        if (upper_cmd_recv.cfm_flag == 1)
+        // 第三步 抓取矿石：lift向下、吸住矿石
+            upper_solve.lift_dist = 0.0f;
         break;
     case 4:
-        // 第四步：存放在矿仓中
+        // 第四步：吸稳矿石后升起
+        upper_solve.lift_dist = 420.0f;
+        break;
+    case 5:
+        // 第五步：存放在矿仓中
         if (upper_cmd_recv.cfm_flag == 2)
         {
             upper_solve.yaw2 = 0.0f;
@@ -637,45 +692,297 @@ static void UpperTwoSliverMiningMode()
             upper_solve.lift_dist = 322.0f;
         }
         break;
-    case 5:
+    case 6:
+        // 第六步：存稳后升起
         if (upper_cmd_recv.cfm_flag == 3)
         {
             upper_solve.lift_dist = 420.0f;
         }
         break;
-    case 6:
+    case 7:
+        // 第七步：机械臂归位
         upper_solve.yaw3 = 0.0f;
         upper_solve.yaw2 = 0.0f;
         upper_solve.yaw1 = 0.0f;
         upper_solve.pitch_differ = 0.0f;
         break;
-    case 7:
+    case 8:
+        // 第八步：抬升归位
         upper_solve.lift_dist = 0.0f;
         break;
     default:
         action_step = 0;
-
         break;
     }
 
     if (upper_cmd_recv.stop_flag == 0)
     {
-        if ((action_step != 0) && (action_step != 2) && (action_step != 4) && (action_step != 5))
+        if ((action_step != 0) && (action_step != 3) && (action_step != 5) && (action_step != 6))
         {
             ActionFinishJudge(action_step, cali_time, 1, ACTION_STEP_TIME);
         }
-        else if ((action_step == 2) && (upper_cmd_recv.cfm_flag == 1))
+        else if ((action_step == 3) && (upper_cmd_recv.cfm_flag == 1))
         {
             ActionFinishJudge(action_step, cali_time, 1, CALI_STEP_TIME);
         }
-        else if((action_step == 4) && (upper_cmd_recv.cfm_flag == 2))
+        else if((action_step == 5) && (upper_cmd_recv.cfm_flag == 2))
         {
             ActionFinishJudge(action_step, cali_time, 1, CALI_STEP_TIME);
         }
-        else if((action_step == 5) && (upper_cmd_recv.cfm_flag == 3))
+        else if((action_step == 6) && (upper_cmd_recv.cfm_flag == 3))
         {
             ActionFinishJudge(action_step, cali_time, 1, CALI_STEP_TIME);
         }
+    }
+    else
+    {
+        ActionFinishJudge(action_step, cali_time, 0, ACTION_STEP_TIME);
+    }
+}
+
+/**
+ * @brief 取矿仓矿石模式1
+ *
+ */
+static void UpperFetchOre1()
+{
+    static uint16_t cali_time = 0;
+
+    switch (action_step)
+    {
+    case 1:
+        upper_solve.lift_dist = 0.0f;       // 第一步：打开抬升
+        break;
+    case 2:
+        upper_solve.yaw1 = 0.0f;            // 第二步：机械臂就位
+        upper_solve.yaw2 = 0.0f;            //
+        upper_solve.yaw3 = 0.0f;            //
+        upper_solve.pitch_differ = 0.0f;    //
+        upper_solve.roll_differ = 0.0f;     //
+        break;
+    case 3:
+        if (upper_cmd_recv.cfm_flag == 1)
+        {
+            upper_solve.lift_dist = 0.0f;   // 第三步：机械臂抬升将矿石吸起
+        }
+        break;
+    case 4:
+        upper_solve.yaw1 = 0.0f;            // 第四步：机械臂归位
+        upper_solve.yaw2 = 0.0f;
+        upper_solve.yaw3 = 0.0f;
+        upper_solve.pitch_differ = 0.0f;
+        upper_solve.roll_differ = 0.0f;
+        break;
+    default:
+        action_step = 0;
+        break;
+    }
+
+    if (upper_cmd_recv.stop_flag == 0)
+    {
+        if ((action_step != 0) && (action_step != 3))
+        {
+            ActionFinishJudge(action_step, cali_time, 1, ACTION_STEP_TIME);
+        }
+        else if ((action_step == 3) && (upper_cmd_recv.cfm_flag == 1))
+        {
+            ActionFinishJudge(action_step, cali_time, 1, CALI_STEP_TIME);
+        }
+    }
+    else
+    {
+        ActionFinishJudge(action_step, cali_time, 0, ACTION_STEP_TIME);
+    }
+}
+
+/**
+ * @brief 取矿仓矿石模式2
+ *
+ */
+static void UpperFetchOre2()
+{
+    static uint16_t cali_time = 0;
+
+    switch (action_step)
+    {
+    case 1:
+        upper_solve.lift_dist = 0.0f;       // 第一步：打开抬升
+        break;
+    case 2:
+        upper_solve.yaw1 = 0.0f;            // 第二步：机械臂就位
+        upper_solve.yaw2 = 0.0f;            //
+        upper_solve.yaw3 = 0.0f;            //
+        upper_solve.pitch_differ = 0.0f;    //
+        upper_solve.roll_differ = 0.0f;     //
+        break;
+    case 3:
+        if (upper_cmd_recv.cfm_flag == 1)
+        {
+            upper_solve.lift_dist = 0.0f;   // 第三步：机械臂抬升将矿石吸起
+        }
+        break;
+    case 4:
+        upper_solve.yaw1 = 0.0f;            // 第四步：机械臂归位
+        upper_solve.yaw2 = 0.0f;
+        upper_solve.yaw3 = 0.0f;
+        upper_solve.pitch_differ = 0.0f;
+        upper_solve.roll_differ = 0.0f;
+        break;
+    default:
+        action_step = 0;
+        break;
+    }
+
+    if (upper_cmd_recv.stop_flag == 0)
+    {
+        if ((action_step != 0) && (action_step != 3))
+        {
+            ActionFinishJudge(action_step, cali_time, 1, ACTION_STEP_TIME);
+        }
+        else if ((action_step == 3) && (upper_cmd_recv.cfm_flag == 1))
+        {
+            ActionFinishJudge(action_step, cali_time, 1, CALI_STEP_TIME);
+        }
+    }
+    else
+    {
+        ActionFinishJudge(action_step, cali_time, 0, ACTION_STEP_TIME);
+    }
+}
+
+/**
+ * @brief 存矿仓矿石模式1
+ *
+ */
+ static void UpperStorageOre1()
+ {
+    static uint16_t cali_time = 0;
+
+    switch (action_step)
+    {
+    case 1:
+        upper_solve.lift_dist = 0.0f;       // 第一步：打开抬升
+        break;
+    case 2:
+        upper_solve.yaw1 = 0.0f;            // 第二步：机械臂就位
+        upper_solve.yaw2 = 0.0f;            //
+        upper_solve.yaw3 = 0.0f;            //
+        upper_solve.pitch_differ = 0.0f;    //
+        upper_solve.roll_differ = 0.0f;     //
+        break;
+    case 3:
+        upper_solve.lift_dist = 0.0f;       // 第三步：机械臂降下将矿石放下
+        break;
+    case 4:
+        if (upper_cmd_recv.cfm_flag == 1)
+        upper_solve.yaw1 = 0.0f;            // 第四步：机械臂归位
+        upper_solve.yaw2 = 0.0f;
+        upper_solve.yaw3 = 0.0f;
+        upper_solve.pitch_differ = 0.0f;
+        upper_solve.roll_differ = 0.0f;
+        break;
+    default:
+        action_step = 0;
+        break;
+    }
+
+    if (upper_cmd_recv.stop_flag == 0)
+    {
+        if ((action_step != 0) && (action_step != 4))
+        {
+            ActionFinishJudge(action_step, cali_time, 1, ACTION_STEP_TIME);
+        }
+        else if ((action_step == 4) && (upper_cmd_recv.cfm_flag == 1))
+        {
+            ActionFinishJudge(action_step, cali_time, 1, CALI_STEP_TIME);
+        }
+    }
+    else
+    {
+        ActionFinishJudge(action_step, cali_time, 0, ACTION_STEP_TIME);
+    }
+ }
+
+/**
+ * @brief 存矿仓矿石模式2
+ *
+ */
+static void UpperStorageOre2()
+{
+    static uint16_t cali_time = 0;
+
+    switch (action_step)
+    {
+    case 1:
+        upper_solve.lift_dist = 0.0f;       // 第一步：打开抬升
+        break;
+    case 2:
+        upper_solve.yaw1 = 0.0f;            // 第二步：机械臂就位
+        upper_solve.yaw2 = 0.0f;            //
+        upper_solve.yaw3 = 0.0f;            //
+        upper_solve.pitch_differ = 0.0f;    //
+        upper_solve.roll_differ = 0.0f;     //
+        break;
+    case 3:
+        upper_solve.lift_dist = 0.0f;       // 第三步：机械臂降下将矿石放下
+        break;
+    case 4:
+        if (upper_cmd_recv.cfm_flag == 1)
+        upper_solve.yaw1 = 0.0f;            // 第四步：机械臂归位
+        upper_solve.yaw2 = 0.0f;
+        upper_solve.yaw3 = 0.0f;
+        upper_solve.pitch_differ = 0.0f;
+        upper_solve.roll_differ = 0.0f;
+        break;
+    default:
+        action_step = 0;
+        break;
+    }
+
+    if (upper_cmd_recv.stop_flag == 0)
+    {
+        if ((action_step != 0) && (action_step != 4))
+        {
+            ActionFinishJudge(action_step, cali_time, 1, ACTION_STEP_TIME);
+        }
+        else if ((action_step == 4) && (upper_cmd_recv.cfm_flag == 1))
+        {
+            ActionFinishJudge(action_step, cali_time, 1, CALI_STEP_TIME);
+        }
+    }
+    else
+    {
+        ActionFinishJudge(action_step, cali_time, 0, ACTION_STEP_TIME);
+    }
+}
+
+/**
+ * @brief 大资源岛开采金矿模式
+ *
+ */
+static void UpperGlodMiningMode()
+{
+    static uint16_t cali_time = 0;
+
+    switch (action_step)
+    {
+    case 1:
+        upper_solve.lift_dist = 0.0f;   // 第一步：展开抬升防止干涉
+        break;
+    case 2:
+        upper_solve.yaw1 = 0.0f;        // 第二步：机械臂归位
+        upper_solve.yaw2 = 0.0f;
+        upper_solve.yaw3 = 0.0f;
+        upper_solve.pitch_differ = 0.0f;
+        upper_solve.roll_differ = 0.0f;
+        break;
+    case 3:
+        upper_solve.lift_dist = 0.0f; // 第三步：抬升归位
+    }
+
+    if (upper_cmd_recv.stop_flag == 0)
+    {
+        ActionFinishJudge(action_step, cali_time, 1, ACTION_STEP_TIME);
     }
     else
     {
@@ -706,8 +1013,26 @@ static void UpperModeControl()
     case UPPER_SINGLE_MOTOR:
         UpperSingleMode();
         break;
+    case UPPER_SLIVER_MINING:
+        UpperSliverMiningMode();
+        break;
     case UPPER_TWO_SLIVER_MINING:
         UpperTwoSliverMiningMode();
+        break;
+    case UPPER_FETCH_ORE_1:
+        UpperFetchOre1();
+        break;
+    case UPPER_FETCH_ORE_2:
+        UpperFetchOre2();
+        break;
+    case UPPER_STORAGE_ORE_1:
+        UpperStorageOre1();
+        break;
+    case UPPER_STORAGE_ORE_2:
+        UpperStorageOre2();
+        break;
+    case UPPER_GLOD_MINING:
+        UpperGlodMiningMode();
         break;
     default:
         break;
