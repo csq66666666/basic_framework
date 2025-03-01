@@ -16,6 +16,7 @@
         "robot_cmd.h": "c",
         "general_def.h": "c",
         "ins_task.h": "c",
-        "can_comm.h": "c"
+        "can_comm.h": "c",
+        "bsp_log.h": "c"
     }
 }

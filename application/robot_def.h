@@ -35,8 +35,8 @@
 #define yaw2_MAX 258.4f                                                 // yaw2最大角度
 #define yaw2_MIN 0.0f                                                   // yaw2轴最小角度
 
-#define yaw3_MAX 360.0f                                                 // yaw3最大角度(待修改)
-#define yaw3_MIN -360.0f                                                // yaw3轴最小角度(待修改)
+#define yaw3_MAX 150.0f                                                 // yaw3最大角度(待修改)
+#define yaw3_MIN -144.6f                                                // yaw3轴最小角度
 
 #define PITCH_DIFFER_MAX 82.0f                                          // pitch_differ轴最大角度
 #define PITCH_DIFFER_MIN -88.8f                                         // pitch_differ轴最小角度
