@@ -209,7 +209,9 @@ static void RemoteControlSet()
 static void MouseKeySet()
 {
     /**************************************************   此处为动作组   **************************************************/
-
+    if (upper_cmd_send.upper_mode < UPPER_SLIVER_MINING)
+    {
+        upper_cmd_send.upper_mode = UPPER_SINGLE_MOTOR;
     // ctrl + shift + F 键进入存矿仓矿石模式
     if (rc_data[TEMP].key[KEY_PRESS].f && rc_data[TEMP].key[KEY_PRESS].ctrl && rc_data[TEMP].key[KEY_PRESS].shift)
     {
@@ -258,7 +260,7 @@ static void MouseKeySet()
         upper_cmd_send.upper_mode = UPPER_EXCHANGE;
         upper_cmd_send.joint_data.lift_dist = upper_fetch_data.joint_data.lift_dist; // 视自定义控制器抬升设计情况而决定是否保留此句
     }
-
+    }
     /**************************************************   此处为单个器件控制   **************************************************/
 
     // 这里由于优先级原因泵控制必须要在模式控制之前以强制覆盖
@@ -273,7 +275,7 @@ static void MouseKeySet()
 
     if (upper_cmd_send.upper_mode == UPPER_SLIVER_MINING) // 单银矿石，地矿
     {
-        chassis_cmd_send.chassis_mode = CHASSIS_MINING;
+        chassis_cmd_send.chassis_mode = CHASSIS_NORMAL;
         chassis_cmd_send.pump_mode = VALVE_ARM1;
         if (rc_data[TEMP].key[KEY_PRESS_WITH_CTRL].x) // 退出模式
             upper_cmd_send.stop_flag = 1;
@@ -294,7 +296,7 @@ static void MouseKeySet()
     }
     else if (upper_cmd_send.upper_mode == UPPER_TWO_SLIVER_MINING) // 一位双矿
     {
-        chassis_cmd_send.chassis_mode = CHASSIS_MINING;
+        chassis_cmd_send.chassis_mode = CHASSIS_NORMAL;
 
         if (rc_data[TEMP].key[KEY_PRESS_WITH_CTRL].x) // 退出模式
             upper_cmd_send.stop_flag = 1;
@@ -330,7 +332,7 @@ static void MouseKeySet()
     }
     else if (upper_cmd_send.upper_mode == UPPER_FETCH_ORE_1) // 取矿仓1矿石
     {
-        chassis_cmd_send.chassis_mode = CHASSIS_MINING;
+        chassis_cmd_send.chassis_mode = CHASSIS_NORMAL;
         chassis_cmd_send.pump_mode = VALVE_ARM1 | VALVE_T_ALL_OPEN;
 
         if (rc_data[TEMP].key[KEY_PRESS_WITH_CTRL].x) // 退出模式
@@ -357,7 +359,7 @@ static void MouseKeySet()
     }
     else if (upper_cmd_send.upper_mode == UPPER_FETCH_ORE_2) // 取矿仓2矿石
     {
-        chassis_cmd_send.chassis_mode = CHASSIS_MINING;
+        chassis_cmd_send.chassis_mode = CHASSIS_NORMAL;
         chassis_cmd_send.pump_mode = VALVE_ARM1 | VALVE_T2;
 
         if (rc_data[TEMP].key[KEY_PRESS_WITH_CTRL].x) // 退出模式
@@ -384,7 +386,7 @@ static void MouseKeySet()
     }
     else if (upper_cmd_send.upper_mode == UPPER_STORAGE_ORE_1) // 存矿仓1矿石
     {
-        chassis_cmd_send.chassis_mode = CHASSIS_MINING;
+        chassis_cmd_send.chassis_mode = CHASSIS_NORMAL;
         chassis_cmd_send.pump_mode = VALVE_ARM1 | VALVE_T_ALL_OPEN;
 
         if (rc_data[TEMP].key[KEY_PRESS_WITH_CTRL].x) // 退出模式
@@ -411,7 +413,7 @@ static void MouseKeySet()
     }
     else if (upper_cmd_send.upper_mode == UPPER_STORAGE_ORE_2) // 存矿仓2矿石
     {
-        chassis_cmd_send.chassis_mode = CHASSIS_MINING;
+        chassis_cmd_send.chassis_mode = CHASSIS_NORMAL;
         chassis_cmd_send.pump_mode = VALVE_ARM1 | VALVE_T2;
 
         if (rc_data[TEMP].key[KEY_PRESS_WITH_CTRL].x) // 退出模式
@@ -433,7 +435,7 @@ static void MouseKeySet()
     }
     else if (upper_cmd_send.upper_mode == UPPER_GLOD_MINING) // 取金矿模式
     {
-        chassis_cmd_send.chassis_mode = CHASSIS_MINING;
+        chassis_cmd_send.chassis_mode = CHASSIS_NORMAL;
         chassis_cmd_send.pump_mode = VALVE_ARM1;
 
         // 任务执行结束

@@ -260,7 +260,219 @@ static void UpperCalculate()
     upper_differ_r_op = (upper_solve.pitch_differ - upper_solve.roll_differ / GEAR_RATION_DIFFER) * SHAFT_2_ROTOR_ROLL_DIFFER + upper_differ_motor_r->measure.init_angle; // 电机反装，测量的初始值需要取反
     upper_lift_op = upper_solve.lift_dist * LIFT_DIST_2_ANGLE - upper_lift_motor->measure.init_angle; // 电机反装，测量的初始值需要取反
 }
+/**
+ * @brief 上层机构校准模式2
+ *
+ */
+static void UpperCaliMode2()
+{
+    static uint16_t cali_time = 0;
+    static const float speed_maxout_differ = 15000;
+    static const float speed_maxout_yaw = 15000;
+    static const float angle_maxout_yaw = 10000;
 
+    static const float speed_maxout_lift = 15000;
+    static const float angle_maxout_lift = 15000;
+    static float pitch_test_max;
+    static float pitch_test_min;
+    static uint8_t yaw3_flag = 0;
+    static uint8_t yaw2_flag = 0;
+    static uint8_t yaw1_flag = 0;
+
+    if (action_step == 1) // lift
+    {
+        if (action_finish_flag == 0 && action_flag == 0) // step 1
+        {
+            action_flag = 1;
+            DJIMotorOuterLoop(upper_lift_motor, SPEED_LOOP);
+            upper_lift_motor->motor_controller.speed_PID.MaxOut = 15000;
+            upper_lift_op = 15000;
+        }
+        else if (action_flag == 0) // step 3
+        {
+            action_flag = 1;
+            DJIMotorOuterLoop(upper_lift_motor, ANGLE_LOOP);
+            upper_lift_motor->motor_controller.angle_PID.MaxOut = 6000; // 防止回来过程中运动太快，有点小
+            upper_solve.lift_dist = -upper_feedback_data.joint_data.lift_dist - 400; // 200这个高度待debug测量
+            UpperCalculate();
+        }
+
+        if (fabsf(upper_lift_motor->measure.speed_aps) < 100)
+        {
+            cali_time ++;
+
+            if (cali_time > CALI_STEP_TIME)
+            {
+                if (action_finish_flag == 0)  // step 2
+                {
+                    cali_time = 0;
+                    action_flag = 0;
+                    action_finish_flag = 1;
+                }
+                else  // step 4
+                {
+                    cali_time = 0;
+                    action_flag = 0;
+                    action_finish_flag = 0;
+                    action_step ++;
+                    upper_lift_motor->measure.init_angle = upper_lift_motor->measure.total_angle;
+                    upper_solve.lift_dist = 0;
+                    UpperCalculate();
+                }
+            }
+        }
+    }
+    else if (action_step == 2) // yaw3,yaw2,yaw1
+    { 
+        DJIMotorOuterLoop(upper_yaw3_motor, SPEED_LOOP);
+        DJIMotorOuterLoop(upper_yaw1_motor, SPEED_LOOP);
+        DJIMotorOuterLoop(upper_yaw2_motor, SPEED_LOOP);
+        upper_yaw3_motor->motor_controller.speed_PID.MaxOut = 6000;
+        upper_yaw2_motor->motor_controller.speed_PID.MaxOut = 6000;
+        upper_yaw1_motor->motor_controller.speed_PID.MaxOut = 6000;
+        upper_yaw3_op=7000;
+        upper_yaw2_op = -6000;
+        upper_yaw1_op = 6000;
+        action_step ++;
+
+    }
+    else if (action_step == 3) // yaw123
+    {
+        if (fabsf(upper_yaw3_motor->measure.speed_aps) < EPS&&(yaw3_flag==0))
+        {
+            cali_time++;
+
+            if (cali_time > CALI_STEP_TIME)
+            {   cali_time = 0;
+                upper_yaw3_op=200;
+                 yaw3_flag = 1;
+            }
+        }
+        if (fabsf(upper_yaw2_motor->measure.speed_aps) < EPS&&(yaw2_flag==0))
+        {
+            cali_time++;
+
+            if (cali_time > CALI_STEP_TIME)
+            {   cali_time = 0;
+                upper_yaw2_op=-200;
+                yaw2_flag = 1;
+            }
+        }
+        if (fabsf(upper_yaw1_motor->measure.speed_aps) < EPS&&(yaw1_flag==0))
+        {
+            cali_time++;
+
+            if (cali_time > CALI_STEP_TIME)
+            {   cali_time = 0;
+                upper_yaw1_op=200;
+                yaw1_flag = 1;
+            }
+        }
+        if(yaw3_flag && yaw2_flag && yaw1_flag)
+        {
+            action_step ++;
+          
+        }
+    }
+    else if (action_step == 4) // yaw123
+    {
+            DJIMotorOuterLoop(upper_yaw3_motor, ANGLE_LOOP);
+            DJIMotorOuterLoop(upper_yaw2_motor, ANGLE_LOOP);
+            DJIMotorOuterLoop(upper_yaw1_motor, ANGLE_LOOP);
+            upper_yaw3_motor->motor_controller.angle_PID.MaxOut = 7000;
+            upper_yaw2_motor->motor_controller.angle_PID.MaxOut = 6000;
+            upper_yaw1_motor->motor_controller.angle_PID.MaxOut = 6000; 
+            upper_solve.yaw3 = -upper_feedback_data.joint_data.yaw3 + 146;
+            upper_solve.yaw2 = -upper_feedback_data.joint_data.yaw2;
+            upper_solve.yaw1 = -upper_feedback_data.joint_data.yaw1 + 112.7;
+            yaw2_flag = 0;//最上面有=0
+            yaw3_flag = 0;
+            yaw1_flag = 0;
+            UpperCalculate();
+            action_step ++;
+            
+    }else if (action_step==5)
+    {
+        if ((fabsf(upper_yaw1_motor->measure.speed_aps) < 100)&&(fabsf(upper_yaw2_motor->measure.speed_aps) < 100)&&(fabsf(upper_yaw3_motor->measure.speed_aps) < 100))
+        {cali_time++;
+            if (cali_time > CALI_STEP_TIME)
+            {
+                cali_time=0;
+                action_step ++;// step 6
+                upper_yaw1_motor->measure.init_angle = upper_yaw1_motor->measure.total_angle;
+                upper_yaw2_motor->measure.init_angle = upper_yaw2_motor->measure.total_angle;
+                upper_yaw3_motor->measure.init_angle = upper_yaw3_motor->measure.total_angle;
+                upper_solve.yaw3 = 0;
+                upper_solve.yaw2 = 0;
+                upper_solve.yaw1 = 0;
+                UpperCalculate();
+            }
+        }
+    }
+    
+    else if (action_step == 6) // 抬升归位
+    {
+        if (action_finish_flag == 0 && action_flag == 0) // step 1
+        {
+            action_flag = 1;
+            DJIMotorOuterLoop(upper_lift_motor, SPEED_LOOP);
+            upper_lift_motor->motor_controller.speed_PID.MaxOut = 6000;
+            upper_lift_op = -6000;
+        }
+        else if (action_flag == 0) // step 3
+        {
+            action_flag = 1;
+            DJIMotorOuterLoop(upper_lift_motor, ANGLE_LOOP);
+            upper_lift_motor->motor_controller.angle_PID.MaxOut = 6000;
+            upper_solve.lift_dist = -upper_feedback_data.joint_data.lift_dist;
+            UpperCalculate();
+        }
+
+        if (fabsf(upper_lift_motor->measure.speed_aps) < 100)
+        {
+            cali_time ++;
+
+            if (cali_time > CALI_STEP_TIME)
+            {
+                if (action_finish_flag == 0)  // step 2
+                {
+                    cali_time = 0;
+                    action_flag = 0;
+                    action_finish_flag = 1;
+                }
+                else                          // step 4
+                {
+                    cali_time = 0;
+                    action_flag = 0;
+                    action_finish_flag = 0;
+                    action_step ++;
+                    upper_lift_motor->measure.init_angle = upper_lift_motor->measure.total_angle;
+                    upper_solve.lift_dist = 0;
+                    UpperCalculate();
+                }
+            }
+        }
+    }
+    else if (action_step == 7) // PID归位
+    {
+        action_step = 0;
+        upper_differ_motor_l->motor_controller.speed_PID.MaxOut = speed_maxout_differ;
+        upper_differ_motor_r->motor_controller.speed_PID.MaxOut = speed_maxout_differ;
+
+        upper_yaw1_motor->motor_controller.speed_PID.MaxOut = speed_maxout_yaw;
+        upper_yaw1_motor->motor_controller.angle_PID.MaxOut = angle_maxout_yaw;
+
+        upper_yaw2_motor->motor_controller.speed_PID.MaxOut = speed_maxout_yaw;
+        upper_yaw2_motor->motor_controller.angle_PID.MaxOut = angle_maxout_yaw;
+
+        upper_yaw3_motor->motor_controller.speed_PID.MaxOut = speed_maxout_yaw;
+        upper_yaw3_motor->motor_controller.angle_PID.MaxOut = angle_maxout_yaw;
+
+        upper_lift_motor->motor_controller.speed_PID.MaxOut = speed_maxout_lift;
+        upper_lift_motor->motor_controller.angle_PID.MaxOut = angle_maxout_lift;
+        UpperCalculate();
+    }
+}
 /**
  * @brief 上层机构校准模式
  *
@@ -1027,7 +1239,7 @@ static void UpperModeControl()
     case UPPER_NO_MOVE:
         break;
     case UPPER_CALI:
-        UpperCaliMode();
+    UpperCaliMode2();
         break;
     case UPPER_SINGLE_MOTOR:
         UpperSingleMode();
