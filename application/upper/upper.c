@@ -183,7 +183,7 @@ void UpperInit()
     upper_motor_config.controller_param_init_config.speed_PID.IntegralLimit = 2000;
     upper_motor_config.controller_param_init_config.speed_PID.MaxOut = 15000;
 
-    upper_motor_config.controller_setting_init_config.motor_reverse_flag = MOTOR_DIRECTION_REVERSE;
+    upper_motor_config.controller_setting_init_config.motor_reverse_flag = MOTOR_DIRECTION_NORMAL;
     upper_motor_config.motor_type = M2006;
     upper_differ_motor_l = DJIMotorInit(&upper_motor_config);
     upper_differ_motor_l->measure.init_flag = 1;
@@ -208,8 +208,8 @@ static void UpperFeedUpdata()
     upper_feedback_data.joint_data.yaw1 = (upper_yaw1_motor->measure.total_angle - upper_yaw1_motor->measure.init_angle) * ROTOR_2_SHAFT_YAW1;
     upper_feedback_data.joint_data.yaw2 = (upper_yaw2_motor->measure.total_angle - upper_yaw2_motor->measure.init_angle) * ROTOR_2_SHAFT_YAW2;
     upper_feedback_data.joint_data.yaw3 = (upper_yaw3_motor->measure.total_angle - upper_yaw3_motor->measure.init_angle) * ROTOR_2_SHAFT_YAW3;
-    upper_feedback_data.joint_data.roll_differ = (((upper_differ_motor_r->measure.total_angle - upper_differ_motor_r->measure.init_angle) - (upper_differ_motor_l->measure.total_angle - upper_differ_motor_l->measure.init_angle)) / 2.0f * GEAR_RATION_DIFFER) * ROTOR_2_SHAFT_ROLL_DIFFER; // 电机反装，测量的初始值需要取反
-    upper_feedback_data.joint_data.pitch_differ = -(((upper_differ_motor_r->measure.total_angle - upper_differ_motor_r->measure.init_angle) + (upper_differ_motor_l->measure.total_angle - upper_differ_motor_l->measure.init_angle)) / 2.0f) * ROTOR_2_SHAFT_PITCH_DIFFER; // 电机反装，测量值需要取反
+    upper_feedback_data.joint_data.roll_differ = (((upper_differ_motor_l->measure.total_angle - upper_differ_motor_l->measure.init_angle) + (upper_differ_motor_r->measure.total_angle - upper_differ_motor_r->measure.init_angle)) / 2.0f * GEAR_RATION_DIFFER) * ROTOR_2_SHAFT_ROLL_DIFFER; // 电机反装，测量的初始值需要取反
+    upper_feedback_data.joint_data.pitch_differ = (((upper_differ_motor_l->measure.total_angle - upper_differ_motor_l->measure.init_angle) - (upper_differ_motor_r->measure.total_angle - upper_differ_motor_r->measure.init_angle)) / 2.0f) * ROTOR_2_SHAFT_PITCH_DIFFER; // 电机反装，测量值需要取反
 
     upper_feedback_data.joint_data.lift_dist = ((upper_lift_motor->measure.total_angle - upper_lift_motor->measure.init_angle)) / LIFT_DIST_2_ANGLE;
 
@@ -256,8 +256,8 @@ static void UpperCalculate()
     upper_yaw1_op = upper_solve.yaw1 * SHAFT_2_ROTOR_YAW1 + upper_yaw1_motor->measure.init_angle; // yaw1轴转向与电机输出轴转向相反，宏SHAFT_2_ROTOR_YAW1取值为负
     upper_yaw2_op = upper_solve.yaw2 * SHAFT_2_ROTOR_YAW2 + upper_yaw2_motor->measure.init_angle; // yaw2轴转向与电机输出轴转向相反，宏SHAFT_2_ROTOR_YAW2取值为负
     upper_yaw3_op = upper_solve.yaw3 * SHAFT_2_ROTOR_YAW3 + upper_yaw3_motor->measure.init_angle; // yaw3轴转向与电机输出轴转向相反，宏SHAFT_2_ROTOR_YAW3取值为负
-    upper_differ_l_op = (upper_solve.pitch_differ + upper_solve.roll_differ / GEAR_RATION_DIFFER) * SHAFT_2_ROTOR_ROLL_DIFFER - upper_differ_motor_l->measure.init_angle; // 电机反装，测量的初始值需要取反
-    upper_differ_r_op = (upper_solve.pitch_differ - upper_solve.roll_differ / GEAR_RATION_DIFFER) * SHAFT_2_ROTOR_ROLL_DIFFER + upper_differ_motor_r->measure.init_angle; // 电机反装，测量的初始值需要取反
+    upper_differ_l_op = (upper_solve.pitch_differ + upper_solve.roll_differ / GEAR_RATION_DIFFER) * SHAFT_2_ROTOR_ROLL_DIFFER + upper_differ_motor_l->measure.init_angle; 
+    upper_differ_r_op = (upper_solve.pitch_differ - upper_solve.roll_differ / GEAR_RATION_DIFFER) * SHAFT_2_ROTOR_ROLL_DIFFER - upper_differ_motor_r->measure.init_angle; // 电机反装，测量的初始值需要取反
     upper_lift_op = upper_solve.lift_dist * LIFT_DIST_2_ANGLE - upper_lift_motor->measure.init_angle; // 电机反装，测量的初始值需要取反
 }
 /**
@@ -265,8 +265,13 @@ static void UpperCalculate()
  *
  */
 static void UpperCaliMode2()
-{
-    static uint16_t cali_time = 0;
+{   static uint16_t cali_time = 0;
+    static uint16_t cali_time_yaw1 = 0;
+    static uint16_t cali_time_yaw2 = 0;
+    static uint16_t cali_time_yaw3 = 0;
+    static uint16_t cali_time_differ= 0;
+    
+
     static const float speed_maxout_differ = 15000;
     static const float speed_maxout_yaw = 15000;
     static const float angle_maxout_yaw = 10000;
@@ -278,6 +283,8 @@ static void UpperCaliMode2()
     static uint8_t yaw3_flag = 0;
     static uint8_t yaw2_flag = 0;
     static uint8_t yaw1_flag = 0;
+    static uint8_t upper_differ_motor_l_flag = 0;
+    static uint8_t upper_differ_motor_r_flag = 0;
 
     if (action_step == 1) // lift
     {
@@ -327,48 +334,73 @@ static void UpperCaliMode2()
         DJIMotorOuterLoop(upper_yaw3_motor, SPEED_LOOP);
         DJIMotorOuterLoop(upper_yaw1_motor, SPEED_LOOP);
         DJIMotorOuterLoop(upper_yaw2_motor, SPEED_LOOP);
-        upper_yaw3_motor->motor_controller.speed_PID.MaxOut = 6000;
-        upper_yaw2_motor->motor_controller.speed_PID.MaxOut = 6000;
-        upper_yaw1_motor->motor_controller.speed_PID.MaxOut = 6000;
-        upper_yaw3_op=7000;
+        DJIMotorOuterLoop(upper_differ_motor_l, SPEED_LOOP);
+        DJIMotorOuterLoop(upper_differ_motor_r, SPEED_LOOP);
+        upper_yaw3_motor->motor_controller.speed_PID.MaxOut = 8000;
+        upper_yaw2_motor->motor_controller.speed_PID.MaxOut = 8000;
+        upper_yaw1_motor->motor_controller.speed_PID.MaxOut = 8000;
+        upper_differ_motor_l->motor_controller.speed_PID.MaxOut = 6000;
+        upper_differ_motor_r->motor_controller.speed_PID.MaxOut = 6000;
+        upper_yaw3_op=-8000;
         upper_yaw2_op = -6000;
-        upper_yaw1_op = 6000;
+        upper_yaw1_op = 8000;
+        upper_differ_l_op = 6000;
+        upper_differ_r_op = 6000;
         action_step ++;
 
     }
-    else if (action_step == 3) // yaw123
+    else if (action_step == 3) // yaw123 differ lr
     {
-        if (fabsf(upper_yaw3_motor->measure.speed_aps) < EPS&&(yaw3_flag==0))
+        if (fabsf(upper_yaw3_motor->measure.speed_aps) < 50&&(yaw3_flag==0))
         {
-            cali_time++;
+            cali_time_yaw3++;
 
-            if (cali_time > CALI_STEP_TIME)
-            {   cali_time = 0;
-                upper_yaw3_op=200;
+            if (cali_time_yaw3 > CALI_STEP_TIME)
+            {   cali_time_yaw3 = 0;
+                upper_yaw3_op=-4000;
                  yaw3_flag = 1;
             }
         }
-        if (fabsf(upper_yaw2_motor->measure.speed_aps) < EPS&&(yaw2_flag==0))
+        if (fabsf(upper_yaw2_motor->measure.speed_aps) < 50&&(yaw2_flag==0))
         {
-            cali_time++;
+            cali_time_yaw2++;
 
-            if (cali_time > CALI_STEP_TIME)
-            {   cali_time = 0;
-                upper_yaw2_op=-200;
+            if (cali_time_yaw2 > CALI_STEP_TIME)
+            {   cali_time_yaw2 = 0;
+                upper_yaw2_op=-4000;
                 yaw2_flag = 1;
             }
         }
-        if (fabsf(upper_yaw1_motor->measure.speed_aps) < EPS&&(yaw1_flag==0))
+        if (fabsf(upper_yaw1_motor->measure.speed_aps) < 50&&(yaw1_flag==0))
         {
-            cali_time++;
+            cali_time_yaw1++;
 
-            if (cali_time > CALI_STEP_TIME)
-            {   cali_time = 0;
-                upper_yaw1_op=200;
+            if (cali_time_yaw1 > CALI_STEP_TIME)
+            {   cali_time_yaw1 = 0;
+                upper_yaw1_op=4000;
                 yaw1_flag = 1;
             }
         }
-        if(yaw3_flag && yaw2_flag && yaw1_flag)
+        if ((fabsf(upper_differ_motor_l->measure.speed_aps) < 50&&(upper_differ_motor_l_flag==0))&&(fabsf(upper_differ_motor_r->measure.speed_aps) < 50&&(upper_differ_motor_r_flag==0)))
+        {
+            cali_time_differ++;
+
+            if (cali_time_differ > CALI_STEP_TIME)
+            {   cali_time_differ = 0;
+                upper_differ_l_op=1000;
+                upper_differ_motor_l_flag = 1;
+                upper_differ_r_op=1000;
+                upper_differ_motor_r_flag = 1;
+            }
+        
+        
+        
+            
+
+           
+            
+        }
+        if(yaw3_flag && yaw2_flag && yaw1_flag&&upper_differ_motor_l_flag&&upper_differ_motor_r_flag)
         {
             action_step ++;
           
@@ -379,21 +411,28 @@ static void UpperCaliMode2()
             DJIMotorOuterLoop(upper_yaw3_motor, ANGLE_LOOP);
             DJIMotorOuterLoop(upper_yaw2_motor, ANGLE_LOOP);
             DJIMotorOuterLoop(upper_yaw1_motor, ANGLE_LOOP);
+            DJIMotorOuterLoop(upper_differ_motor_l, ANGLE_LOOP);
+            DJIMotorOuterLoop(upper_differ_motor_r, ANGLE_LOOP);
             upper_yaw3_motor->motor_controller.angle_PID.MaxOut = 7000;
             upper_yaw2_motor->motor_controller.angle_PID.MaxOut = 6000;
             upper_yaw1_motor->motor_controller.angle_PID.MaxOut = 6000; 
-            upper_solve.yaw3 = -upper_feedback_data.joint_data.yaw3 + 146;
+
+            upper_solve.yaw3 = -upper_feedback_data.joint_data.yaw3 - 146;
             upper_solve.yaw2 = -upper_feedback_data.joint_data.yaw2;
             upper_solve.yaw1 = -upper_feedback_data.joint_data.yaw1 + 112.7;
+            upper_solve.pitch_differ = upper_feedback_data.joint_data.pitch_differ-60;
+           
             yaw2_flag = 0;//最上面有=0
             yaw3_flag = 0;
             yaw1_flag = 0;
+            upper_differ_motor_l_flag = 0;
+            upper_differ_motor_r_flag = 0;
             UpperCalculate();
             action_step ++;
             
     }else if (action_step==5)
     {
-        if ((fabsf(upper_yaw1_motor->measure.speed_aps) < 100)&&(fabsf(upper_yaw2_motor->measure.speed_aps) < 100)&&(fabsf(upper_yaw3_motor->measure.speed_aps) < 100))
+        if ((fabsf(upper_yaw1_motor->measure.speed_aps) < 100)&&(fabsf(upper_yaw2_motor->measure.speed_aps) < 100)&&(fabsf(upper_yaw3_motor->measure.speed_aps) < 100)&&(fabsf(upper_differ_motor_l->measure.speed_aps) < 100)&&(fabsf(upper_differ_motor_r->measure.speed_aps) < 100))
         {cali_time++;
             if (cali_time > CALI_STEP_TIME)
             {
@@ -402,9 +441,12 @@ static void UpperCaliMode2()
                 upper_yaw1_motor->measure.init_angle = upper_yaw1_motor->measure.total_angle;
                 upper_yaw2_motor->measure.init_angle = upper_yaw2_motor->measure.total_angle;
                 upper_yaw3_motor->measure.init_angle = upper_yaw3_motor->measure.total_angle;
+                upper_differ_motor_l->measure.init_angle = upper_differ_motor_l->measure.total_angle;
+                upper_differ_motor_r->measure.init_angle = upper_differ_motor_r->measure.total_angle;
                 upper_solve.yaw3 = 0;
                 upper_solve.yaw2 = 0;
                 upper_solve.yaw1 = 0;
+                upper_solve.pitch_differ = 0;
                 UpperCalculate();
             }
         }
