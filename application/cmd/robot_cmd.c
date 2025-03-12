@@ -92,9 +92,14 @@ void RobotCMDInit()
     cmd_can_comm = CANCommInit(&comm_conf);
 #endif // GIMBAL_BOARD
     gimbal_cmd_send.pitch = 0;
+    gimbal_cmd_send.gimbal_mode = GIMBAL_FIX_ANGLE_MODE;
+    gimbal_cmd_send.yaw_fixed_angle = 0;
+    gimbal_cmd_send.yaw_free_angle = 220;
+    gimbal_cmd_send.pitch_free_angle = 90;
 
     robot_state = ROBOT_READY; // 启动时机器人进入工作模式,后续加入所有应用初始化完成之后再进入
 }
+
 /**
  * @brief 将当前位姿更新到发送端，使后续操作在当前位姿上执行
  *
@@ -108,6 +113,17 @@ static void CmdRecvUpdate()
     upper_cmd_send.joint_data.pitch_differ = upper_fetch_data.joint_data.pitch_differ;
     upper_cmd_send.joint_data.lift_dist = upper_fetch_data.joint_data.lift_dist;
 }
+
+/**
+ * @brief 云台控制数据更新
+ *
+ */
+static void GimbalSendUpdate()
+{
+    gimbal_cmd_send.yaw1_angle = -upper_cmd_send.joint_data.yaw1;
+    gimbal_cmd_send.yaw_free_angle = gimbal_fetch_data.yaw_free_angle_upload;
+    gimbal_cmd_send.yaw_fixed_angle = gimbal_fetch_data.yaw_fixed_angle_upload;
+}
 /**
  * @brief 控制输入为遥控器(调试时)的模式和控制量设置
  *
@@ -115,7 +131,6 @@ static void CmdRecvUpdate()
 static void RemoteControlSet()
 {
     static uint8_t test_flag = 1;
-    chassis_cmd_send.chassis_mode = CHASSIS_NO_MOVE;
     if (upper_cmd_send.upper_mode != UPPER_CALI)
     {
         if (switch_is_up(rc_data[TEMP].rc.switch_left)) // 左侧开关状态为[上]
@@ -125,8 +140,6 @@ static void RemoteControlSet()
             {
                 chassis_cmd_send.chassis_mode = CHASSIS_NORMAL;
             }
-
-            // 底盘参数,系数需要调整
             chassis_cmd_send.vx = 40.0f * (float)rc_data[TEMP].rc.rocker_r_; // _水平方向
             chassis_cmd_send.vy = 40.0f * (float)rc_data[TEMP].rc.rocker_r1; // |竖直方向
             chassis_cmd_send.wz = -5.0f * (float)rc_data[TEMP].rc.rocker_l_; // ↺旋转方向 遥控器摇杆从左往右值增大,与旋转方向相反，所以取相反数
@@ -134,6 +147,7 @@ static void RemoteControlSet()
         else if (switch_is_mid(rc_data[TEMP].rc.switch_left)) // 左侧开关状态为[中]
         {
             upper_cmd_send.upper_mode = UPPER_SINGLE_MOTOR;
+            gimbal_cmd_send.gimbal_mode = GIMBAL_FIX_ANGLE_MODE;
 
             if (switch_is_up(rc_data[TEMP].rc.switch_right)) // 右侧开关状态[上] ，抬升+yaw1+yaw2
             {
@@ -208,60 +222,74 @@ static void RemoteControlSet()
  */
 static void MouseKeySet()
 {
-    /**************************************************   此处为动作组   **************************************************/
-    if (upper_cmd_send.upper_mode < UPPER_SLIVER_MINING)
+    /***********************************************   此处为基本动作控制   ***********************************************/
+    if (!(rc_data[TEMP].key[KEY_PRESS].shift) && !(rc_data[TEMP].key[KEY_PRESS].ctrl))
+    //  W/S  //  A/D  //  Q/E  //
+    //  前后 //  左右  // 旋转  //
     {
-        upper_cmd_send.upper_mode = UPPER_SINGLE_MOTOR;
-    // ctrl + shift + F 键进入存矿仓矿石模式
-    if (rc_data[TEMP].key[KEY_PRESS].f && rc_data[TEMP].key[KEY_PRESS].ctrl && rc_data[TEMP].key[KEY_PRESS].shift)
-    {
-        if (Ore_Storage_Flag2 == 1) // 先存2
+        if (chassis_cmd_send.chassis_mode == CHASSIS_NORMAL)
         {
-            upper_cmd_send.upper_mode = UPPER_STORAGE_ORE_1;
+            chassis_cmd_send.vx = 7000.0f * ((float)rc_data[TEMP].key[KEY_PRESS].a - (float)rc_data[TEMP].key[KEY_PRESS].d); // _水平方向
+            chassis_cmd_send.vy = 7000.0f * ((float)rc_data[TEMP].key[KEY_PRESS].w - (float)rc_data[TEMP].key[KEY_PRESS].s); // |竖直方向
+            chassis_cmd_send.wz = 1000.0f * ((float)rc_data[TEMP].key[KEY_PRESS].q - (float)rc_data[TEMP].key[KEY_PRESS].e); // ↺自旋
         }
-        else
+        else if (chassis_cmd_send.chassis_mode == CHASSIS_CHARGE)
         {
-            upper_cmd_send.upper_mode = UPPER_STORAGE_ORE_2;
-        }
-    }
-    // shift + F 键进入取矿仓矿石模式
-    else if (rc_data[TEMP].key[KEY_PRESS_WITH_SHIFT].f)
-    {
-        if (Ore_Storage_Flag1 != 0) // 先取1
-        {
-            upper_cmd_send.upper_mode = UPPER_FETCH_ORE_1;
-        }
-        else
-        {
-            upper_cmd_send.upper_mode = UPPER_FETCH_ORE_2;
+            chassis_cmd_send.vx = 4000.0f * ((float)rc_data[TEMP].key[KEY_PRESS].a - (float)rc_data[TEMP].key[KEY_PRESS].d); // _水平方向
+            chassis_cmd_send.vy = 4000.0f * ((float)rc_data[TEMP].key[KEY_PRESS].w - (float)rc_data[TEMP].key[KEY_PRESS].s); // |竖直方向
+            chassis_cmd_send.wz = 1000.0f * ((float)rc_data[TEMP].key[KEY_PRESS].q - (float)rc_data[TEMP].key[KEY_PRESS].e); // ↺自旋
         }
     }
-    // 单击 F 键进入小资源岛一位双矿模式
-    else if (rc_data[TEMP].key[KEY_PRESS].f)
+    else
     {
-        upper_cmd_send.upper_mode = UPPER_TWO_SLIVER_MINING;
+        chassis_cmd_send.vx = 0.0f;
+        chassis_cmd_send.vy = 0.0f;
+        chassis_cmd_send.wz = 0.0f;
     }
 
-    // 单击 G 键进入大资源岛取矿模式
-    if (rc_data[TEMP].key[KEY_PRESS].g)
+    // 机械臂键鼠控制
+    // shift + //  W/S  //  Q/E  //  A/D 
+    //         //  抬升 //  yaw1 //  yaw2
+    if ((rc_data[TEMP].key[KEY_PRESS].shift) && !(rc_data[TEMP].key[KEY_PRESS].ctrl))
     {
-        upper_cmd_send.upper_mode = UPPER_GLOD_MINING;
+        upper_cmd_send.joint_data.lift_dist += (1.0f * (float)rc_data[TEMP].key[KEY_PRESS_WITH_SHIFT].w - 1.0f * (float)rc_data[TEMP].key[KEY_PRESS_WITH_SHIFT].s);
+        upper_cmd_send.joint_data.yaw1 += 0.5f *(1.0f * (float)rc_data[TEMP].key[KEY_PRESS_WITH_SHIFT].q - 1.0f * (float)rc_data[TEMP].key[KEY_PRESS_WITH_SHIFT].e);
+        upper_cmd_send.joint_data.yaw2 += 0.5f *(1.0f * (float)rc_data[TEMP].key[KEY_PRESS_WITH_SHIFT].a - 1.0f * (float)rc_data[TEMP].key[KEY_PRESS_WITH_SHIFT].d);
     }
 
-    // 单击 C 键进入取单银矿，地面矿模式
-    if (rc_data[TEMP].key[KEY_PRESS].c)
+    //  ctrl + //   W/S  //   A/D  //   Q/E 
+    //           小pitch //  yaw3  //   roll 
+    if ((!rc_data[TEMP].key[KEY_PRESS].shift) && (rc_data[TEMP].key[KEY_PRESS].ctrl))
     {
-        upper_cmd_send.upper_mode = UPPER_SLIVER_MINING;
+        upper_cmd_send.joint_data.roll_differ += (0.5f * (float)rc_data[TEMP].key[KEY_PRESS_WITH_CTRL].e - 0.5f * (float)rc_data[TEMP].key[KEY_PRESS_WITH_CTRL].q);
+        upper_cmd_send.joint_data.pitch_differ += (0.5f * (float)rc_data[TEMP].key[KEY_PRESS_WITH_CTRL].w - 0.5f * (float)rc_data[TEMP].key[KEY_PRESS_WITH_CTRL].s);
+        upper_cmd_send.joint_data.yaw3 += (0.5f * (float)rc_data[TEMP].key[KEY_PRESS_WITH_CTRL].a - 0.5f * (float)rc_data[TEMP].key[KEY_PRESS_WITH_CTRL].d);
     }
 
-    // 单击 V 键进入自定义控制器兑矿模式
-    if (rc_data[TEMP].key[KEY_PRESS].v)
+    if (rc_data[TEMP].key_count[KEY_PRESS][15] % 2) // 最后一个键为b键
     {
-        upper_cmd_send.upper_mode = UPPER_EXCHANGE;
-        upper_cmd_send.joint_data.lift_dist = upper_fetch_data.joint_data.lift_dist; // 视自定义控制器抬升设计情况而决定是否保留此句
+        gimbal_cmd_send.gimbal_mode = GIMBAL_FIX_ANGLE_MODE;
     }
+    else
+    {
+        gimbal_cmd_send.gimbal_mode = GIMBAL_FREE_MODE;
     }
-    /**************************************************   此处为单个器件控制   **************************************************/
+    // 小云台键鼠控制
+    //  ctrl + shift  //    W/S     //    A/D
+    //                   云台pitch  //   云台yaw
+    if ((rc_data[TEMP].key[KEY_PRESS].shift) && (rc_data[TEMP].key[KEY_PRESS].ctrl))
+    {
+        if (gimbal_cmd_send.gimbal_mode == GIMBAL_FREE_MODE)
+        {
+            gimbal_cmd_send.pitch_free_angle += (1.0f * (float)rc_data[TEMP].key[KEY_PRESS_WITH_CTRL].w - 1.0f * (float)rc_data[TEMP].key[KEY_PRESS_WITH_CTRL].s);
+            gimbal_fetch_data.yaw_free_angle_upload += (1.0f * (float)rc_data[TEMP].key[KEY_PRESS_WITH_CTRL].a - 1.0f * (float)rc_data[TEMP].key[KEY_PRESS_WITH_CTRL].d);
+        }
+        else if (gimbal_cmd_send.gimbal_mode == GIMBAL_FIX_ANGLE_MODE)
+        {
+            gimbal_cmd_send.pitch_free_angle += (1.0f * (float)rc_data[TEMP].key[KEY_PRESS_WITH_CTRL].w - 1.0f * (float)rc_data[TEMP].key[KEY_PRESS_WITH_CTRL].s);
+            gimbal_fetch_data.yaw_fixed_angle_upload += (1.0f * (float)rc_data[TEMP].key[KEY_PRESS_WITH_CTRL].a - 1.0f * (float)rc_data[TEMP].key[KEY_PRESS_WITH_CTRL].d);
+        }
+    }
 
     // 这里由于优先级原因泵控制必须要在模式控制之前以强制覆盖
     // shift + R 关闭真空泵
@@ -270,6 +298,61 @@ static void MouseKeySet()
     // 单击 R 键打开真空泵
     else if (rc_data[TEMP].key[KEY_PRESS].r)
         chassis_cmd_send.pump_mode |= VALVE_ALL_OPEN;
+
+    /**************************************************   此处为动作组   **************************************************/
+    if (upper_cmd_send.upper_mode < UPPER_SLIVER_MINING)
+    {
+        upper_cmd_send.upper_mode = UPPER_SINGLE_MOTOR;
+
+        // ctrl + shift + F 键进入存矿仓矿石模式
+        if (rc_data[TEMP].key[KEY_PRESS].f && rc_data[TEMP].key[KEY_PRESS].ctrl && rc_data[TEMP].key[KEY_PRESS].shift)
+        {
+            if (Ore_Storage_Flag2 == 1) // 先存2
+            {
+                upper_cmd_send.upper_mode = UPPER_STORAGE_ORE_1;
+            }
+            else
+            {
+                upper_cmd_send.upper_mode = UPPER_STORAGE_ORE_2;
+            }
+        }
+        // shift + F 键进入取矿仓矿石模式
+        else if (rc_data[TEMP].key[KEY_PRESS_WITH_SHIFT].f)
+        {
+            if (Ore_Storage_Flag1 != 0) // 先取1
+            {
+                upper_cmd_send.upper_mode = UPPER_FETCH_ORE_1;
+            }
+            else
+            {
+                upper_cmd_send.upper_mode = UPPER_FETCH_ORE_2;
+            }
+        }
+        // 单击 F 键进入小资源岛一位双矿模式
+        else if (rc_data[TEMP].key[KEY_PRESS].f)
+        {
+            upper_cmd_send.upper_mode = UPPER_TWO_SLIVER_MINING;
+        }
+
+        // 单击 G 键进入大资源岛取矿模式
+        if (rc_data[TEMP].key[KEY_PRESS].g)
+        {
+            upper_cmd_send.upper_mode = UPPER_GLOD_MINING;
+        }
+
+        // 单击 C 键进入取单银矿，地面矿模式
+        if (rc_data[TEMP].key[KEY_PRESS].c)
+        {
+            upper_cmd_send.upper_mode = UPPER_SLIVER_MINING;
+        }
+
+        // 单击 V 键进入自定义控制器兑矿模式
+        if (rc_data[TEMP].key[KEY_PRESS].v)
+        {
+            upper_cmd_send.upper_mode = UPPER_EXCHANGE;
+            upper_cmd_send.joint_data.lift_dist = upper_fetch_data.joint_data.lift_dist; // 视自定义控制器抬升设计情况而决定是否保留此句
+        }
+    }
 
     /**************************************************   此处为模式控制任务   **************************************************/
 
@@ -297,7 +380,7 @@ static void MouseKeySet()
     else if (upper_cmd_send.upper_mode == UPPER_TWO_SLIVER_MINING) // 一位双矿
     {
         chassis_cmd_send.chassis_mode = CHASSIS_NORMAL;
-
+        gimbal_cmd_send.gimbal_mode = GIMBAL_GET_TWO_SILVER_MODE;
         if (rc_data[TEMP].key[KEY_PRESS_WITH_CTRL].x) // 退出模式
             upper_cmd_send.stop_flag = 1;
         else if (rc_data[TEMP].key[KEY_PRESS].f && upper_fetch_data.action_step == 3) // 再次单击 F 键继续执行
@@ -325,6 +408,7 @@ static void MouseKeySet()
             chassis_cmd_send.chassis_mode = CHASSIS_NORMAL;
             upper_cmd_send.stop_flag = 0;
             upper_cmd_send.upper_mode = UPPER_NO_MOVE;
+            gimbal_cmd_send.gimbal_mode = GIMBAL_FIX_ANGLE_MODE;
             Ore_Storage_Flag1 = 1;
             Ore_Storage_Flag2 = 1;
             CmdRecvUpdate();
@@ -436,6 +520,7 @@ static void MouseKeySet()
     else if (upper_cmd_send.upper_mode == UPPER_GLOD_MINING) // 取金矿模式
     {
         chassis_cmd_send.chassis_mode = CHASSIS_NORMAL;
+        gimbal_cmd_send.gimbal_mode = GIMBAL_GET_GOLD_MODE;
         chassis_cmd_send.pump_mode = VALVE_ARM1;
 
         // 任务执行结束
@@ -444,10 +529,25 @@ static void MouseKeySet()
             chassis_cmd_send.chassis_mode = CHASSIS_NORMAL;
             upper_cmd_send.stop_flag = 0;
             upper_cmd_send.upper_mode = UPPER_NO_MOVE;
+            gimbal_cmd_send.gimbal_mode = GIMBAL_FIX_ANGLE_MODE;
             CmdRecvUpdate();
         }
     }
+    else if (upper_cmd_send.upper_mode == UPPER_EXCHANGE) // 控制器兑换
+    {
+        chassis_cmd_send.chassis_mode = CHASSIS_MINING;
+        // upper_cmd_send.ctrlr_data.pitch = chassis_fetch_data.ctrlr_data.pitch;
+        // upper_cmd_send.ctrlr_data.yaw = chassis_fetch_data.ctrlr_data.yaw;
+        // upper_cmd_send.ctrlr_data.roll = chassis_fetch_data.ctrlr_data.roll;
+        // upper_cmd_send.ctrlr_data.push_dist = chassis_fetch_data.ctrlr_data.push_dist;
+        // upper_cmd_send.ctrlr_data.traverse_dist = chassis_fetch_data.ctrlr_data.traverse_dist;
 
+        if (rc_data[TEMP].key[KEY_PRESS_WITH_CTRL].x) // 退出模式
+        {
+            upper_cmd_send.upper_mode = UPPER_NO_MOVE;
+            CmdRecvUpdate();
+        }
+    }
     if (Ore_Storage_Flag1) // 锁定矿仓气路防止矿石掉落
     {
         chassis_cmd_send.pump_mode |= VALVE_T1;
@@ -471,7 +571,7 @@ static void EmergencyHandler()
     if (switch_is_down(rc_data[TEMP].rc.switch_right)) // 还需添加重要应用和模块离线的判断
     {
         robot_state = ROBOT_STOP;
-        gimbal_cmd_send.gimbal_mode = GIMBAL_ZERO_FORCE;
+        gimbal_cmd_send.gimbal_mode = GIMBAL_NOMOVE;
         chassis_cmd_send.chassis_mode = CHASSIS_ZERO_FORCE;
         shoot_cmd_send.shoot_mode = SHOOT_OFF;
         shoot_cmd_send.friction_mode = FRICTION_OFF;
@@ -495,6 +595,7 @@ void RobotCMDTask()
 #endif // GIMBAL_BOARD
     SubGetMessage(shoot_feed_sub, &shoot_fetch_data);
     SubGetMessage(upper_feed_sub, &upper_fetch_data);
+    SubGetMessage(gimbal_feed_sub, &gimbal_fetch_data);
 
     // 根据遥控器左侧开关,确定当前使用的控制模式为遥控器调试还是键鼠
     if (switch_is_down(rc_data[TEMP].rc.switch_left) && switch_is_mid(rc_data[TEMP].rc.switch_right))
@@ -505,6 +606,9 @@ void RobotCMDTask()
     EmergencyHandler(); // 处理模块离线和遥控器急停等紧急情况
 
     UpperJointConstrain(&upper_cmd_send.joint_data);
+
+    GimbalSendUpdate();
+    
     if (upper_last_mode != upper_cmd_send.upper_mode)
     {
         CmdRecvUpdate();
@@ -523,4 +627,5 @@ void RobotCMDTask()
 #endif // GIMBAL_BOARD
     PubPushMessage(shoot_cmd_pub, (void *)&shoot_cmd_send);
     PubPushMessage(upper_cmd_pub, (void *)&upper_cmd_send);
+    PubPushMessage(gimbal_cmd_pub, (void *)&gimbal_cmd_send);
 }

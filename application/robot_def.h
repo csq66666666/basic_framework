@@ -39,7 +39,7 @@
 #define yaw3_MIN -144.6f                                                // yaw3轴最小角度
 
 #define PITCH_DIFFER_MAX 82.0f                                          // pitch_differ轴最大角度
-#define PITCH_DIFFER_MIN -88.8f                                         // pitch_differ轴最小角度
+#define PITCH_DIFFER_MIN -90.0f                                         // pitch_differ轴最小角度
 
 #define GEAR_RATION_YAW1 (16.0f / 64.0f)                                 // yaw1轴齿轮比
 #define GEAR_RATION_YAW2 (16.0f / 36.0f)                                 // yaw2轴齿轮比
@@ -66,6 +66,8 @@
 
 #define SHAFT_2_ROTOR_ROLL_DIFFER REDUCTION_RATIO_DIFFER                // 差速器roll轴角度转换到电机转子角度
 #define SHAFT_2_ROTOR_PITCH_DIFFER REDUCTION_RATIO_DIFFER               // 差速器pitch轴角度转换到电机转子角度
+
+#define YAW1_VERTICAL_ANGLE -65                                         // 大yaw轴与底盘左右边中垂线的夹角（逆时针为正）
 // 滑移参数
 #define REDUCTION_RATIO_LIFT 19.0f                                      // 抬升电机减速比
 
@@ -161,11 +163,11 @@ typedef enum
     CHASSIS_ROTATE,
     CHASSIS_NO_FOLLOW,
     CHASSIS_FOLLOW_GIMBAL_YAW,
-    CHASSIS_MINING          // 取矿行进模式
-
+    CHASSIS_MINING,         // 取矿行进模式
+    CHASSIS_CHARGE,         // 兑矿行进模式
 } chassis_mode_e;
 
-//机械臂部分
+// 机械臂模式设置
 typedef enum
 {
     UPPER_ZERO_FORCE = 0,          // 电流零输入
@@ -185,9 +187,14 @@ typedef enum
 // 云台模式设置
 typedef enum
 {
-    GIMBAL_ZERO_FORCE = 0, // 电流零输入
-    GIMBAL_FREE_MODE,      // 云台自由运动模式,即与底盘分离(底盘此时应为NO_FOLLOW)反馈值为电机total_angle;似乎可以改为全部用IMU数据?
-    GIMBAL_GYRO_MODE,      // 云台陀螺仪反馈模式,反馈值为陀螺仪pitch,total_yaw_angle,底盘可以为小陀螺和跟随模式
+    GIMBAL_NOMOVE = 0,             // 云台锁定模式
+    GIMBAL_FREE_MODE,              // 云台自由运动模式
+    GIMBAL_FIX_ANGLE_MODE,         // 云台核心控制模式，保持云台yaw轴与地面成固定角度，请在校准模式后再开启
+    GIMBAL_GET_TWO_SILVER_MODE,    // 云台一位双银模式
+    GIMBAL_GET_GOLD_MODE,          // 云台取金矿模式
+
+    GIMBAL_ZERO_FORCE,             // 废弃
+    GIMBAL_GYRO_MODE,              // 废弃
 } gimbal_mode_e;
 
 
@@ -274,6 +281,11 @@ typedef struct
     float pitch;
     float chassis_rotate_wz;
 
+    int16_t yaw_free_angle;       // 逆时针为正
+    int16_t pitch_free_angle;     // 逆时针为正
+    int16_t yaw_fixed_angle;      // 逆时针为正
+    int16_t yaw1_angle;           // 逆时针为正
+
     gimbal_mode_e gimbal_mode;
 } Gimbal_Ctrl_Cmd_s;
 
@@ -320,6 +332,9 @@ typedef struct
 {
     attitude_t gimbal_imu_data;
     uint16_t yaw_motor_single_round_angle;
+
+    uint16_t yaw_free_angle_upload;
+    uint16_t yaw_fixed_angle_upload;
 } Gimbal_Upload_Data_s;
 
 typedef struct
