@@ -102,7 +102,8 @@ void RobotCMDInit()
 
 /**
  * @brief 将当前位姿更新到发送端，使后续操作在当前位姿上执行
- *
+ * @note 注意这个函数不能被一直调用，否则会与键鼠/遥控器的控制冲突
+ * 
  */
 static void CmdRecvUpdate()
 {
@@ -166,11 +167,12 @@ static void RemoteControlSet()
         {
             if (switch_is_up(rc_data[TEMP].rc.switch_right)) // 右侧开关状态[上] ，自定义控制器数据传输
             {
+                upper_cmd_send.ctrl_data.lift_dist = chassis_fetch_data.ctrl_data.lift_dist;
+                upper_cmd_send.ctrl_data.yaw1 = chassis_fetch_data.ctrl_data.yaw1;
+                upper_cmd_send.ctrl_data.yaw2 = chassis_fetch_data.ctrl_data.yaw2;
+                upper_cmd_send.ctrl_data.yaw3 = chassis_fetch_data.ctrl_data.yaw3;
                 upper_cmd_send.ctrl_data.pitch = chassis_fetch_data.ctrl_data.pitch;
-                upper_cmd_send.ctrl_data.yaw = chassis_fetch_data.ctrl_data.yaw;
-                upper_cmd_send.ctrl_data.roll = chassis_fetch_data.ctrl_data.roll;
-                upper_cmd_send.ctrl_data.push_dist = chassis_fetch_data.ctrl_data.push_dist;
-                upper_cmd_send.ctrl_data.traverse_dist = chassis_fetch_data.ctrl_data.traverse_dist;
+                upper_cmd_send.ctrl_data.roll = chassis_fetch_data.ctrl_data.roll;                
             }
         }
         // 真空泵控制,拨轮向上打为负,向下为正
@@ -229,15 +231,15 @@ static void MouseKeySet()
     {
         if (chassis_cmd_send.chassis_mode == CHASSIS_NORMAL)
         {
-            chassis_cmd_send.vx = 7000.0f * ((float)rc_data[TEMP].key[KEY_PRESS].a - (float)rc_data[TEMP].key[KEY_PRESS].d); // _水平方向
-            chassis_cmd_send.vy = 7000.0f * ((float)rc_data[TEMP].key[KEY_PRESS].w - (float)rc_data[TEMP].key[KEY_PRESS].s); // |竖直方向
-            chassis_cmd_send.wz = 1000.0f * ((float)rc_data[TEMP].key[KEY_PRESS].q - (float)rc_data[TEMP].key[KEY_PRESS].e); // ↺自旋
+            chassis_cmd_send.vx = 20000.0f * ((float)rc_data[TEMP].key[KEY_PRESS].a - (float)rc_data[TEMP].key[KEY_PRESS].d); // _水平方向
+            chassis_cmd_send.vy = 20000.0f * ((float)rc_data[TEMP].key[KEY_PRESS].w - (float)rc_data[TEMP].key[KEY_PRESS].s); // |竖直方向
+            chassis_cmd_send.wz = 2500.0f * ((float)rc_data[TEMP].key[KEY_PRESS].q - (float)rc_data[TEMP].key[KEY_PRESS].e); // ↺自旋
         }
         else if (chassis_cmd_send.chassis_mode == CHASSIS_CHARGE)
         {
-            chassis_cmd_send.vx = 4000.0f * ((float)rc_data[TEMP].key[KEY_PRESS].a - (float)rc_data[TEMP].key[KEY_PRESS].d); // _水平方向
-            chassis_cmd_send.vy = 4000.0f * ((float)rc_data[TEMP].key[KEY_PRESS].w - (float)rc_data[TEMP].key[KEY_PRESS].s); // |竖直方向
-            chassis_cmd_send.wz = 1000.0f * ((float)rc_data[TEMP].key[KEY_PRESS].q - (float)rc_data[TEMP].key[KEY_PRESS].e); // ↺自旋
+            chassis_cmd_send.vx = 10000.0f * ((float)rc_data[TEMP].key[KEY_PRESS].a - (float)rc_data[TEMP].key[KEY_PRESS].d); // _水平方向
+            chassis_cmd_send.vy = 10000.0f * ((float)rc_data[TEMP].key[KEY_PRESS].w - (float)rc_data[TEMP].key[KEY_PRESS].s); // |竖直方向
+            chassis_cmd_send.wz = 2000.0f * ((float)rc_data[TEMP].key[KEY_PRESS].q - (float)rc_data[TEMP].key[KEY_PRESS].e); // ↺自旋
         }
     }
     else
@@ -350,7 +352,6 @@ static void MouseKeySet()
         if (rc_data[TEMP].key[KEY_PRESS].v)
         {
             upper_cmd_send.upper_mode = UPPER_EXCHANGE;
-            upper_cmd_send.joint_data.lift_dist = upper_fetch_data.joint_data.lift_dist; // 视自定义控制器抬升设计情况而决定是否保留此句
         }
     }
 
@@ -358,8 +359,12 @@ static void MouseKeySet()
 
     if (upper_cmd_send.upper_mode == UPPER_SLIVER_MINING) // 单银矿石，地矿
     {
-        chassis_cmd_send.chassis_mode = CHASSIS_NORMAL;
-        chassis_cmd_send.pump_mode = VALVE_ARM1;
+        if (upper_fetch_data.action_step == 1) // 初始化
+        {
+            chassis_cmd_send.chassis_mode = CHASSIS_MINING;
+            chassis_cmd_send.pump_mode = VALVE_ARM1;
+        }
+
         if (rc_data[TEMP].key[KEY_PRESS_WITH_CTRL].x) // 退出模式
             upper_cmd_send.stop_flag = 1;
         else if (rc_data[TEMP].key[KEY_PRESS].c && upper_fetch_data.action_step == 3) // 再次单击 F 键继续执行
@@ -379,8 +384,12 @@ static void MouseKeySet()
     }
     else if (upper_cmd_send.upper_mode == UPPER_TWO_SLIVER_MINING) // 一位双矿
     {
-        chassis_cmd_send.chassis_mode = CHASSIS_NORMAL;
-        gimbal_cmd_send.gimbal_mode = GIMBAL_GET_TWO_SILVER_MODE;
+        if (upper_fetch_data.action_step == 1) // 初始化
+        {
+            chassis_cmd_send.chassis_mode = CHASSIS_MINING;
+            gimbal_cmd_send.gimbal_mode = GIMBAL_GET_TWO_SILVER_MODE;
+        }
+
         if (rc_data[TEMP].key[KEY_PRESS_WITH_CTRL].x) // 退出模式
             upper_cmd_send.stop_flag = 1;
         else if (rc_data[TEMP].key[KEY_PRESS].f && upper_fetch_data.action_step == 3) // 再次单击 F 键继续执行
@@ -416,19 +425,32 @@ static void MouseKeySet()
     }
     else if (upper_cmd_send.upper_mode == UPPER_FETCH_ORE_1) // 取矿仓1矿石
     {
-        chassis_cmd_send.chassis_mode = CHASSIS_NORMAL;
-        chassis_cmd_send.pump_mode = VALVE_ARM1 | VALVE_T_ALL_OPEN;
+        if (upper_fetch_data.action_step == 1) // 初始化
+        {
+            chassis_cmd_send.chassis_mode = CHASSIS_NORMAL;
+            chassis_cmd_send.pump_mode = VALVE_ARM1 | VALVE_T_ALL_OPEN;
+        }
 
         if (rc_data[TEMP].key[KEY_PRESS_WITH_CTRL].x) // 退出模式
             upper_cmd_send.stop_flag = 1;
-        else if (rc_data[TEMP].key[KEY_PRESS].f && upper_fetch_data.action_step == 3) // 再次单击 F 键继续执行
+        else if (upper_fetch_data.action_step == 2)
         {
-            chassis_cmd_send.pump_mode = VALVE_ARM1 | VALVE_T2;
+            CmdRecvUpdate();                        // 在单轴控制前先更新当前位姿
+        }
+        else if (rc_data[TEMP].key[KEY_PRESS].f && upper_fetch_data.action_step == 3) // 调整完毕位置后，再次单击 F 键继续执行
+        {
             upper_cmd_send.cfm_flag = 1;
+        }
+        else if (upper_fetch_data.action_step == 4) // 关闭气泵
+        {
+            Ore_Storage_Flag1 = 0;
+            chassis_cmd_send.pump_mode = VALVE_ARM1 | VALVE_T2;
+            if (rc_data[TEMP].key[KEY_PRESS].f)
+                upper_cmd_send.cfm_flag = 2;
         }
 
         // 该动作执行结束后再将flag置位，防止在多次循环中不能重复进入动作组判断
-        if (upper_fetch_data.action_step != 3)
+        if (upper_fetch_data.action_step != 3 && upper_fetch_data.action_step != 4)
             upper_cmd_send.cfm_flag = 0;
 
         // 任务执行结束
@@ -437,52 +459,71 @@ static void MouseKeySet()
             chassis_cmd_send.chassis_mode = CHASSIS_NORMAL;
             upper_cmd_send.stop_flag = 0;
             upper_cmd_send.upper_mode = UPPER_NO_MOVE;
-            Ore_Storage_Flag1 = 0;
             CmdRecvUpdate();
         }
     }
     else if (upper_cmd_send.upper_mode == UPPER_FETCH_ORE_2) // 取矿仓2矿石
     {
-        chassis_cmd_send.chassis_mode = CHASSIS_NORMAL;
-        chassis_cmd_send.pump_mode = VALVE_ARM1 | VALVE_T2;
+        if (upper_fetch_data.action_step == 1) // 初始化
+        {
+            chassis_cmd_send.chassis_mode = CHASSIS_NORMAL;
+            chassis_cmd_send.pump_mode = VALVE_ARM1 | VALVE_T2;
+        }
+
+        if (rc_data[TEMP].key[KEY_PRESS_WITH_CTRL].x) // 退出模式
+            upper_cmd_send.stop_flag = 1;
+        else if (upper_fetch_data.action_step == 2)
+        {
+            CmdRecvUpdate();                        // 在单轴控制前先更新当前位姿
+        }
+        else if (rc_data[TEMP].key[KEY_PRESS].f && upper_fetch_data.action_step == 3) // 调整完毕位置后，再次单击 F 键继续执行
+        {
+            upper_cmd_send.cfm_flag = 1;
+        }
+        else if (upper_fetch_data.action_step == 4) // 关闭气泵
+        {
+            Ore_Storage_Flag2 = 0;
+            chassis_cmd_send.pump_mode = VALVE_ARM1;
+            if (rc_data[TEMP].key[KEY_PRESS].f)
+                upper_cmd_send.cfm_flag = 2;
+        }
+
+        // 该动作执行结束后再将flag置位，防止在多次循环中不能重复进入动作组判断
+        if (upper_fetch_data.action_step != 3 && upper_fetch_data.action_step != 4)
+            upper_cmd_send.cfm_flag = 0;
+
+        // 任务执行结束
+        if (upper_fetch_data.action_step == 0)
+        {
+            chassis_cmd_send.chassis_mode = CHASSIS_NORMAL;
+            upper_cmd_send.stop_flag = 0;
+            upper_cmd_send.upper_mode = UPPER_NO_MOVE;
+            CmdRecvUpdate();
+        }
+    }
+    else if (upper_cmd_send.upper_mode == UPPER_STORAGE_ORE_1) // 存矿仓1矿石
+    {
+        if (upper_fetch_data.action_step == 1) // 初始化
+        {
+            chassis_cmd_send.chassis_mode = CHASSIS_NORMAL;
+            chassis_cmd_send.pump_mode = VALVE_ARM1 | VALVE_T_ALL_OPEN;
+        }
 
         if (rc_data[TEMP].key[KEY_PRESS_WITH_CTRL].x) // 退出模式
             upper_cmd_send.stop_flag = 1;
         else if (rc_data[TEMP].key[KEY_PRESS].f && upper_fetch_data.action_step == 3) // 再次单击 F 键继续执行
         {
-            chassis_cmd_send.pump_mode = VALVE_ARM1;
             upper_cmd_send.cfm_flag = 1;
         }
-
-        // 该动作执行结束后再将flag置位，防止在多次循环中不能重复进入动作组判断
-        if (upper_fetch_data.action_step != 3)
-            upper_cmd_send.cfm_flag = 0;
-
-        // 任务执行结束
-        if (upper_fetch_data.action_step == 0)
-        {
-            chassis_cmd_send.chassis_mode = CHASSIS_NORMAL;
-            upper_cmd_send.stop_flag = 0;
-            upper_cmd_send.upper_mode = UPPER_NO_MOVE;
-            CmdRecvUpdate();
-            Ore_Storage_Flag2 = 0;
-        }
-    }
-    else if (upper_cmd_send.upper_mode == UPPER_STORAGE_ORE_1) // 存矿仓1矿石
-    {
-        chassis_cmd_send.chassis_mode = CHASSIS_NORMAL;
-        chassis_cmd_send.pump_mode = VALVE_ARM1 | VALVE_T_ALL_OPEN;
-
-        if (rc_data[TEMP].key[KEY_PRESS_WITH_CTRL].x) // 退出模式
-            upper_cmd_send.stop_flag = 1;
         else if (rc_data[TEMP].key[KEY_PRESS].f && upper_fetch_data.action_step == 4) // 再次单击 F 键继续执行
         {
+            Ore_Storage_Flag1 = 1;
             chassis_cmd_send.pump_mode = VALVE_T_ALL_OPEN;
-            upper_cmd_send.cfm_flag = 1;
+            upper_cmd_send.cfm_flag = 2;
         }
 
         // 该动作执行结束后再将flag置位，防止在多次循环中不能重复进入动作组判断
-        if (upper_fetch_data.action_step != 4)
+        if (upper_fetch_data.action_step != 3 && upper_fetch_data.action_step != 4)
             upper_cmd_send.cfm_flag = 0;
 
         // 任务执行结束
@@ -492,21 +533,33 @@ static void MouseKeySet()
             upper_cmd_send.stop_flag = 0;
             upper_cmd_send.upper_mode = UPPER_NO_MOVE;
             CmdRecvUpdate();
-            Ore_Storage_Flag1 = 1;
         }
     }
     else if (upper_cmd_send.upper_mode == UPPER_STORAGE_ORE_2) // 存矿仓2矿石
     {
-        chassis_cmd_send.chassis_mode = CHASSIS_NORMAL;
-        chassis_cmd_send.pump_mode = VALVE_ARM1 | VALVE_T2;
+        if (upper_fetch_data.action_step == 1) // 初始化
+        {
+            chassis_cmd_send.chassis_mode = CHASSIS_NORMAL;
+            chassis_cmd_send.pump_mode = VALVE_ARM1 | VALVE_T2;
+        }
 
         if (rc_data[TEMP].key[KEY_PRESS_WITH_CTRL].x) // 退出模式
             upper_cmd_send.stop_flag = 1;
-        else if (rc_data[TEMP].key[KEY_PRESS].f && upper_fetch_data.action_step == 4) // 再次单击 F 键继续执行
+        else if (rc_data[TEMP].key[KEY_PRESS].f && upper_fetch_data.action_step == 3) // 再次单击 F 键继续执行
         {
-            chassis_cmd_send.pump_mode = VALVE_T2;
             upper_cmd_send.cfm_flag = 1;
         }
+        else if (rc_data[TEMP].key[KEY_PRESS].f && upper_fetch_data.action_step == 4) // 再次单击 F 键继续执行
+        {
+            Ore_Storage_Flag2 = 1;
+            chassis_cmd_send.pump_mode = VALVE_T2;
+            upper_cmd_send.cfm_flag = 2;
+        }
+
+        // 该动作执行结束后再将flag置位，防止在多次循环中不能重复进入动作组判断
+        if (upper_fetch_data.action_step != 3 && upper_fetch_data.action_step != 4)
+            upper_cmd_send.cfm_flag = 0;
+
         // 任务执行结束
         if (upper_fetch_data.action_step == 0)
         {
@@ -514,14 +567,16 @@ static void MouseKeySet()
             upper_cmd_send.stop_flag = 0;
             upper_cmd_send.upper_mode = UPPER_NO_MOVE;
             CmdRecvUpdate();
-            Ore_Storage_Flag2 = 1;
         }
     }
     else if (upper_cmd_send.upper_mode == UPPER_GLOD_MINING) // 取金矿模式
     {
-        chassis_cmd_send.chassis_mode = CHASSIS_NORMAL;
-        gimbal_cmd_send.gimbal_mode = GIMBAL_GET_GOLD_MODE;
-        chassis_cmd_send.pump_mode = VALVE_ARM1;
+        if (upper_fetch_data.action_step == 1) // 初始化
+        {
+            chassis_cmd_send.chassis_mode = CHASSIS_MINING;
+            gimbal_cmd_send.gimbal_mode = GIMBAL_GET_GOLD_MODE;
+            chassis_cmd_send.pump_mode = VALVE_ARM1;
+        }
 
         // 任务执行结束
         if (upper_fetch_data.action_step == 0)
@@ -536,11 +591,12 @@ static void MouseKeySet()
     else if (upper_cmd_send.upper_mode == UPPER_EXCHANGE) // 控制器兑换
     {
         chassis_cmd_send.chassis_mode = CHASSIS_MINING;
-        // upper_cmd_send.ctrlr_data.pitch = chassis_fetch_data.ctrlr_data.pitch;
-        // upper_cmd_send.ctrlr_data.yaw = chassis_fetch_data.ctrlr_data.yaw;
-        // upper_cmd_send.ctrlr_data.roll = chassis_fetch_data.ctrlr_data.roll;
-        // upper_cmd_send.ctrlr_data.push_dist = chassis_fetch_data.ctrlr_data.push_dist;
-        // upper_cmd_send.ctrlr_data.traverse_dist = chassis_fetch_data.ctrlr_data.traverse_dist;
+        upper_cmd_send.ctrl_data.lift_dist = chassis_fetch_data.ctrl_data.lift_dist;
+        upper_cmd_send.ctrl_data.yaw1 = chassis_fetch_data.ctrl_data.yaw1;
+        upper_cmd_send.ctrl_data.yaw2 = chassis_fetch_data.ctrl_data.yaw2;
+        upper_cmd_send.ctrl_data.yaw3 = chassis_fetch_data.ctrl_data.yaw3;
+        upper_cmd_send.ctrl_data.pitch = chassis_fetch_data.ctrl_data.pitch;
+        upper_cmd_send.ctrl_data.roll = chassis_fetch_data.ctrl_data.roll;
 
         if (rc_data[TEMP].key[KEY_PRESS_WITH_CTRL].x) // 退出模式
         {

@@ -32,12 +32,12 @@ typedef enum
 
 typedef struct
 {
-    float pitch;
-    float yaw;
-    float roll;
     float lift_dist;
-    float push_dist;
-    float traverse_dist;
+    float yaw1;
+    float yaw2;
+    float yaw3;
+    float pitch;
+    float roll;
 } Self_Cntlr_s;
 
 #pragma pack()

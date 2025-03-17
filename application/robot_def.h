@@ -39,7 +39,7 @@
 #define yaw3_MIN -144.6f                                                // yaw3轴最小角度
 
 #define PITCH_DIFFER_MAX 82.0f                                          // pitch_differ轴最大角度
-#define PITCH_DIFFER_MIN -90.0f                                         // pitch_differ轴最小角度
+#define PITCH_DIFFER_MIN -100.0f                                         // pitch_differ轴最小角度
 
 #define GEAR_RATION_YAW1 (16.0f / 64.0f)                                 // yaw1轴齿轮比
 #define GEAR_RATION_YAW2 (16.0f / 36.0f)                                 // yaw2轴齿轮比
@@ -181,7 +181,7 @@ typedef enum
     UPPER_GLOD_MINING,             // 开采金矿模式
     UPPER_STORAGE_ORE_1,           // 存放进矿仓1模式
     UPPER_STORAGE_ORE_2,           // 存放进矿仓2模式
-    UPPER_EXCHANGE,                // 兑换模式
+    UPPER_EXCHANGE,                // 自定义控制器兑换模式
 } upper_mode_e;
 
 // 云台模式设置

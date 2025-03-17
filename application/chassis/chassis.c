@@ -48,7 +48,7 @@ static Referee_Interactive_info_t ui_data; // UI数据，将底盘中的数据�
 
 static DJIMotorInstance *motor_lf, *motor_rf, *motor_lb, *motor_rb; // left right forward back
 
-static Self_Cntlr_s *self_cntlr_data;                                    // 自定义控制器数据接收
+static Self_Cntlr_s *self_ctrl_data;                                    // 自定义控制器数据接收
 static ElecSwitchInstance *valve_1, *valve_2, *valve_3, *valve_4, *pump1,*pump2; // 4个继电器加2个霍尔开关
 
 /* 私有函数计算的中介变量,设为静态避免参数传递的开销 */
@@ -106,7 +106,7 @@ void ChassisInit()
     motor_rb = DJIMotorInit(&chassis_motor_config);
 
     // referee_data = UITaskInit(&huart1, &ui_data); // 裁判系统初始化,会同时初始化UI（注意自定义控制器使用了学生串口huart6，我们的裁判系统接口为huart1）
-    self_cntlr_data = SelfCntlrInit(&huart1);
+    self_ctrl_data = SelfCntlrInit(&huart1);
 
     ElecSwitch_Init_Config_s valve_init_cofig = {
         .GPIOx = VALVE1_GPIO_Port,
@@ -194,16 +194,17 @@ static void ChassisOutput()
     DJIMotorSetRef(motor_rb, vt_rb);
 }
 /**
- * @brief 自定义接收
- *
+ * @brief 自定义控制器数据接收
+ * 
  */
 static void FeedbackUpdate()
 {
-    chassis_feedback_data.ctrl_data.yaw = 4.5f * self_cntlr_data->yaw;
-    chassis_feedback_data.ctrl_data.pitch = self_cntlr_data->pitch;
-    chassis_feedback_data.ctrl_data.roll = -self_cntlr_data->roll;
-    chassis_feedback_data.ctrl_data.push_dist = self_cntlr_data->push_dist;
-    chassis_feedback_data.ctrl_data.traverse_dist = self_cntlr_data->traverse_dist;
+    chassis_feedback_data.ctrl_data.lift_dist = self_ctrl_data->lift_dist;
+    chassis_feedback_data.ctrl_data.yaw1 = self_ctrl_data->yaw1;
+    chassis_feedback_data.ctrl_data.yaw2 = self_ctrl_data->yaw2;
+    chassis_feedback_data.ctrl_data.yaw3 = self_ctrl_data->yaw3;
+    chassis_feedback_data.ctrl_data.pitch = self_ctrl_data->pitch;
+    chassis_feedback_data.ctrl_data.roll = self_ctrl_data->roll;
 }
 /**
  * @brief 底盘加速度限幅

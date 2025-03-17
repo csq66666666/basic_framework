@@ -89,11 +89,12 @@ static void RefereeRxCallback()
     DaemonReload(customize_daemon);
     customizeReadData(customize->recv_buff);
 
-    Hex_Float(data + 0, &self_cntlr.roll);
-    Hex_Float(data + 4, &self_cntlr.yaw);
-    Hex_Float(data + 8, &self_cntlr.pitch);
-    Hex_Float(data + 12, &self_cntlr.push_dist);
-    Hex_Float(data + 16, &self_cntlr.traverse_dist);
+    Hex_Float(data + 0, &self_cntlr.lift_dist);
+    Hex_Float(data + 4, &self_cntlr.yaw1);
+    Hex_Float(data + 8, &self_cntlr.yaw2);
+    Hex_Float(data + 12, &self_cntlr.yaw3);
+    Hex_Float(data + 16, &self_cntlr.pitch);
+    Hex_Float(data + 20, &self_cntlr.roll);
 }
 
 static void RefereeLostCallback(void *arg)
