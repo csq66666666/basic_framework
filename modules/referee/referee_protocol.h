@@ -72,17 +72,37 @@ typedef enum
 	ID_game_state = 0x0001,				   // 比赛状态数据
 	ID_game_result = 0x0002,			   // 比赛结果数据
 	ID_game_robot_survivors = 0x0003,	   // 比赛机器人血量数据
+
 	ID_event_data = 0x0101,				   // 场地事件数据
-	ID_supply_projectile_action = 0x0102,  // 场地补给站动作标识数据
-	ID_supply_projectile_booking = 0x0103, // 场地补给站预约子弹数据
+	// ID_supply_projectile_action = 0x0102,  // 场地补给站动作标识数据
+	// ID_supply_projectile_booking = 0x0103, // 场地补给站预约子弹数据
+	ID_referee_warning = 0x0104,		   // 裁判警告数据 			// 新增
+	ID_dart_info = 0x0105,				   // 飞镖发射相关数据 		// 新增
+
 	ID_game_robot_state = 0x0201,		   // 机器人状态数据
 	ID_power_heat_data = 0x0202,		   // 实时功率热量数据
 	ID_game_robot_pos = 0x0203,			   // 机器人位置数据
 	ID_buff_musk = 0x0204,				   // 机器人增益数据
-	ID_aerial_robot_energy = 0x0205,	   // 空中机器人能量状态数据
+	// ID_aerial_robot_energy = 0x0205,	   // 空中机器人能量状态数据
 	ID_robot_hurt = 0x0206,				   // 伤害状态数据
 	ID_shoot_data = 0x0207,				   // 实时射击数据
+	ID_projectile_allowance = 0x0208,	   // 允许发弹量			// 新增
+	ID_rfid_status = 0x0209,	   		   // 机器人RFID模块状态	// 新增
+	ID_dart_client_cmd = 0x020A,	       // 飞镖选手端指令数据	// 新增
+	ID_ground_robot_position = 0x020B,	   // 地面机器人位置数据	// 新增
+	ID_radar_mark_data = 0x020C,	   	   // 雷达标记进度数据		// 新增
+	ID_sentry_info = 0x020D,	   	   	   // 雷达标记进度数据		// 新增
+	ID_radar_info = 0x020E,	   	   		   // 雷达标记进度数据		// 新增
+
 	ID_student_interactive = 0x0301,	   // 机器人间交互数据
+	ID_custom_robot_data = 0x0302,	   	   // 自定义控制器与机器人交互数据	 // 新增
+	ID_map_command = 0x0303,			   // 选手端小地图交互数据			// 新增
+	ID_remote_control = 0x0304,			   // 键鼠遥控数据					// 新增
+	ID_map_robot_data = 0x0305,			   // 选手端小地图接收雷达数据		// 新增
+	ID_custom_client_data = 0x0306,		   // 自定义控制器与选手端交互数据	// 新增
+	ID_map_data = 0x0307,				   // 选手端小地图接收哨兵数据		// 新增
+	ID_custom_info = 0x0308,			   // 选手端小地图接收机器人数据	// 新增
+	ID_robot_custom_data = 0x0309,		   // 自定义控制器接收机器人数据	// 新增
 } CmdID_e;
 
 /* 命令码数据段长,根据官方协议来定义长度，还有自定义数据长度 */
@@ -91,17 +111,36 @@ typedef enum
 	LEN_game_state = 11,						 // 0x0001
 	LEN_game_result = 1,						 // 0x0002
 	LEN_game_robot_HP = 32,						 // 0x0003
+
 	LEN_event_data = 4,							 // 0x0101
-	LEN_supply_projectile_action = 4,			 // 0x0102
+	// LEN_supply_projectile_action = 4,			 // 0x0102
+	LEN_referee_warning = 3,					 // 0x0104 // 新增
+	LEN_dart_info = 3,							 // 0x0105 // 新增
+
 	LEN_game_robot_state = 13,					 // 0x0201
 	LEN_power_heat_data = 16,					 // 0x0202
 	LEN_game_robot_pos = 16,					 // 0x0203
 	LEN_buff_musk = 6,							 // 0x0204
-	LEN_aerial_robot_energy = 2,				 // 0x0205
+	// LEN_aerial_robot_energy = 2,					 // 0x0205
 	LEN_robot_hurt = 1,							 // 0x0206
 	LEN_shoot_data = 7,							 // 0x0207
-	LEN_receive_data = 6 + Communicate_Data_LEN, // 0x0301
+	LEN_projectile_allowance = 6,				 // 0x0208 // 新增
+	LEN_rfid_status = 4,					 	 // 0x0209 // 新增
+	LEN_dart_client_cmd = 6,					 // 0x020A // 新增
+	LEN_ground_robot_position = 40,				 // 0x020B // 新增
+	LEN_radar_mark_data = 1,					 // 0x020C // 新增
+	LEN_sentry_info = 6,					 	 // 0x020D // 新增
+	LEN_radar_info = 1,					 		 // 0x020E // 新增
 
+	LEN_receive_data = 6 + Communicate_Data_LEN, // 0x0301
+	LEN_custom_robot_data = 30,					 // 0x0302 // 新增
+	LEN_map_command = 15,				 		 // 0x0303 // 新增
+	LEN_remote_control = 12,				 	 // 0x0304 // 新增
+	LEN_map_robot_data = 24,			 		 // 0x0305 // 新增
+	LEN_custom_client_data = 8,			 		 // 0x0306 // 新增
+	LEN_map_data = 103,				 			 // 0x0307 // 新增
+	LEN_custom_info = 34,				 		 // 0x0308 // 新增
+	LEN_robot_custom_data = 30,			 		 // 0x0309 // 新增
 } JudgeDataLength_e;
 
 /****************************接收数据的详细说明****************************/
@@ -129,7 +168,7 @@ typedef struct
 	uint16_t red_2_robot_HP;
 	uint16_t red_3_robot_HP;
 	uint16_t red_4_robot_HP;
-	uint16_t red_5_robot_HP;
+	uint16_t red_5_robot_HP; // 改为保留位
 	uint16_t red_7_robot_HP;
 	uint16_t red_outpost_HP;
 	uint16_t red_base_HP;
@@ -137,7 +176,7 @@ typedef struct
 	uint16_t blue_2_robot_HP;
 	uint16_t blue_3_robot_HP;
 	uint16_t blue_4_robot_HP;
-	uint16_t blue_5_robot_HP;
+	uint16_t blue_5_robot_HP; // 改为保留位
 	uint16_t blue_7_robot_HP;
 	uint16_t blue_outpost_HP;
 	uint16_t blue_base_HP;
@@ -149,14 +188,30 @@ typedef struct
 	uint32_t event_type;
 } ext_event_data_t;
 
-/* ID: 0x0102  Byte:  3    场地补给站动作标识数据 */
-typedef struct
-{
-	uint8_t supply_projectile_id;
-	uint8_t supply_robot_id;
-	uint8_t supply_projectile_step;
-	uint8_t supply_projectile_num;
-} ext_supply_projectile_action_t;
+// 已删除
+// /* ID: 0x0102  Byte:  3    场地补给站动作标识数据 */
+// typedef struct
+// {
+// 	uint8_t supply_projectile_id;
+// 	uint8_t supply_robot_id;
+// 	uint8_t supply_projectile_step;
+// 	uint8_t supply_projectile_num;
+// } ext_supply_projectile_action_t;
+
+/* ID: 0x0104  Byte:  3    裁判警告数据 */ // 新增
+typedef struct 
+{ 
+  uint8_t level; 
+  uint8_t offending_robot_id; 
+  uint8_t count; 
+} ext_referee_warning_t; 
+
+/* ID: 0x0105  Byte:  3    飞镖发射相关数据 */ // 新增
+typedef struct 
+{ 
+	uint8_t dart_remaining_time; 
+	uint16_t dart_info; 
+} ext_dart_info_t; 
 
 /* ID: 0X0201  Byte: 13    机器人状态数据 */
 typedef struct
@@ -176,9 +231,9 @@ typedef struct
 /* ID: 0X0202  Byte: 16    实时功率热量数据 */
 typedef struct
 {
-	uint16_t chassis_voltage; 
-	uint16_t chassis_current; 
-	float chassis_power; 
+	uint16_t chassis_voltage; // 保留位
+	uint16_t chassis_current; // 保留位
+	float chassis_power; 	  // 保留位
 	uint16_t buffer_energy; 
 	uint16_t shooter_17mm_1_barrel_heat; 
 	uint16_t shooter_17mm_2_barrel_heat; 
@@ -190,11 +245,11 @@ typedef struct
 {
 	float x;
 	float y;
-	float z;
-	float yaw;
+	// float z;
+	float yaw;	// 改为angle
 } ext_game_robot_pos_t;
 
-/* ID: 0x0204  Byte:  6    机器人增益数据 */
+/* ID: 0x0204  Byte:  7    机器人增益数据 */
 typedef struct
 {
 	uint8_t recovery_buff; 
@@ -202,14 +257,16 @@ typedef struct
 	uint8_t defence_buff; 
 	uint8_t vulnerability_buff; 
 	uint16_t attack_buff; 
+	uint8_t remaining_energy; // 新增，机器人剩余能量值
 } ext_buff_musk_t;
 
-/* ID: 0x0205  Byte:  2    空中机器人能量状态数据 */
-typedef struct
-{
-	uint8_t airforce_status; 
- 	uint8_t time_remain; 
-} aerial_robot_energy_t;
+// 已删除
+// /* ID: 0x0205  Byte:  2    空中机器人能量状态数据 */
+// typedef struct
+// {
+// 	uint8_t airforce_status; 
+//  	uint8_t time_remain; 
+// } aerial_robot_energy_t;
 
 /* ID: 0x0206  Byte:  1    伤害状态数据 */
 typedef struct
@@ -227,6 +284,65 @@ typedef struct
 	float bullet_speed;
 } ext_shoot_data_t;
 
+/********************* 以下为新增数据 ********************/
+/* ID: 0x0208  Byte:  6    允许发弹量 */
+typedef struct
+{
+	uint16_t projectile_allowance_17mm; 
+	uint16_t projectile_allowance_42mm;  
+	uint16_t remaining_gold_coin; 
+} ext_projectile_allowance_t;
+
+/* ID: 0x0209  Byte:  4    机器人RFID模块状态 */
+typedef struct
+{
+	uint32_t rfid_status;
+} ext_rfid_status_t;
+
+/* ID: 0x020A  Byte:  6    飞镖选手端指令数据 */
+typedef struct 
+{ 
+  uint8_t dart_launch_opening_status;  
+  uint8_t reserved;  
+  uint16_t target_change_time;  
+  uint16_t latest_launch_cmd_time; 
+} ext_dart_client_cmd_t; 
+
+/* ID: 0x020B  Byte:  40    地面机器人位置数据 */
+typedef struct 
+{ 
+  float hero_x;  
+  float hero_y;  
+  float engineer_x;  
+  float engineer_y;  
+  float standard_3_x;  
+  float standard_3_y;  
+  float standard_4_x;  
+  float standard_4_y;  
+  float reserved_1;  
+  float reserved_2; 
+} ext_ground_robot_position_t; 
+
+/* ID: 0x020C  Byte:  1    雷达标记进度数据 */
+typedef struct 
+{ 
+  uint8_t mark_progress;  
+} ext_radar_mark_data_t; 
+
+/* ID: 0x020D  Byte:  6    哨兵自主决策信息同步 */
+typedef struct 
+{  
+  uint32_t sentry_info; 
+  uint16_t sentry_info_2; 
+} ext_sentry_info_t; 
+
+/* ID: 0x020E  Byte:  1    雷达自主决策信息同步 */
+typedef struct 
+{ 
+  uint8_t radar_info; 
+} ext_radar_info_t; 
+/********************* 以上为新增数据 ********************/
+
 /****************************机器人交互数据****************************/
 /****************************机器人交互数据****************************/
 /* 发送的内容数据段最大为 113 检测是否超出大小限制?实际上图形段不会超，数据段最多30个，也不会超*/
@@ -237,6 +353,20 @@ typedef struct
 	uint16_t sender_ID;
 	uint16_t receiver_ID;
 } ext_student_interactive_header_data_t;
+
+// 以下两个为新增数据
+/* 内容ID: 0x0120  Byte:  4    哨兵自主决策指令 */
+typedef struct
+{
+	uint32_t sentry_cmd;  
+} ext_sentry_cmd_t;
+
+/* 内容ID: 0x0121  Byte:  1    雷达自主决策指令 */
+typedef struct
+{
+	uint8_t radar_cmd;  
+} ext_radar_cmd_t;
+
 
 /* 机器人id */
 typedef enum
@@ -264,13 +394,15 @@ typedef enum
 /* 交互数据ID */
 typedef enum
 {
-	UI_Data_ID_Del = 0x100,
-	UI_Data_ID_Draw1 = 0x101,
-	UI_Data_ID_Draw2 = 0x102,
-	UI_Data_ID_Draw5 = 0x103,
-	UI_Data_ID_Draw7 = 0x104,
+	UI_Data_ID_Del = 0x0100,
+	UI_Data_ID_Draw1 = 0x0101,
+	UI_Data_ID_Draw2 = 0x0102,
+	UI_Data_ID_Draw5 = 0x0103,
+	UI_Data_ID_Draw7 = 0x0104,
 	UI_Data_ID_DrawChar = 0x110,
 
+	Sentry_Cmd_Data = 0x0120,		// 新增
+	Radar_Cmd_Data = 0x0121,		// 新增
 	/* 自定义交互数据部分 */
 	Communicate_Data_ID = 0x0200,
 
@@ -282,6 +414,9 @@ typedef enum
 	UI_Operate_LEN_Del = 2,
 	UI_Operate_LEN_PerDraw = 15,
 	UI_Operate_LEN_DrawChar = 15 + 30,
+
+	Sentry_Cmd_Data_LEN = 4,		// 新增
+	Radar_Cmd_Data_LEN = 1,			// 新增
 
 	/* 自定义交互数据部分 */
 	// Communicate_Data_LEN = 5,
@@ -386,6 +521,91 @@ typedef enum
 	UI_Color_White = 8,
 
 } UI_Graph_Color_e;
+
+/********************* 以下为新增数据 ********************/
+/****************************小地图交互数据****************************/
+/* ID: 0x0303  Byte:  15    选手端小地图交互数据 */
+typedef struct 
+{ 
+	float target_position_x; 
+	float target_position_y; 
+	uint8_t cmd_keyboard; 
+	uint8_t target_robot_id; 
+	uint16_t cmd_source; 
+} ext_map_command_t; 
+
+/* ID: 0x0305  Byte:  24    选手端小地图接收雷达数据 */
+typedef struct 
+{ 
+	uint16_t hero_position_x; 
+	uint16_t hero_position_y; 
+	uint16_t engineer_position_x; 
+	uint16_t engineer_position_y; 
+	uint16_t infantry_3_position_x; 
+	uint16_t infantry_3_position_y; 
+	uint16_t infantry_4_position_x; 
+	uint16_t infantry_4_position_y; 
+	uint16_t infantry_5_position_x; 
+	uint16_t infantry_5_position_y; 
+	uint16_t sentry_position_x; 
+	uint16_t sentry_position_y; 
+} ext_map_robot_data_t; 
+
+/* ID: 0x0307  Byte:  103    选手端小地图接收哨兵数据 */
+typedef struct 
+{ 
+	uint8_t intention; 
+	uint16_t start_position_x; 
+	uint16_t start_position_y; 
+	int8_t delta_x[49]; 
+	int8_t delta_y[49]; 
+	uint16_t sender_id; 
+} ext_map_data_t; 
+
+/* ID: 0x0308  Byte:  34    选手端小地图接收机器人数据 */
+typedef struct 
+{ 
+	uint16_t sender_id; 
+	uint16_t receiver_id; 
+	uint8_t user_data[30]; 
+} ext_custom_info_t; 
+
+/****************************图传链路数据****************************/
+/* ID: 0x0302  Byte:  30    自定义控制器与机器人交互数据 */
+typedef struct 
+{ 
+	uint8_t data[30]; 
+} ext_custom_robot_data_t; 
+
+/* ID: 0x0309  Byte:  30    自定义控制器接收机器人数据 */
+typedef struct 
+{ 
+	uint8_t data[30]; 
+} ext_robot_custom_data_t; 
+
+/* ID: 0x0304  Byte:  12    键鼠遥控数据 */
+typedef struct 
+{ 
+	int16_t mouse_x; 
+	int16_t mouse_y; 
+	int16_t mouse_z; 
+	int8_t left_button_down; 
+	int8_t right_button_down; 
+	uint16_t keyboard_value; 
+	uint16_t reserved; 
+} ext_remote_control_t; 
+
+/****************************非链路数据****************************/
+/* ID: 0x0306  Byte:  8    自定义控制器与选手端交互数据 */
+typedef struct 
+{ 
+	uint16_t key_value; 
+	uint16_t x_position:12; 
+	uint16_t mouse_left:4; 
+	uint16_t y_position:12; 
+	uint16_t mouse_right:4; 
+	uint16_t reserved; 
+} ext_custom_client_data_t; 
 
 #pragma pack()
 

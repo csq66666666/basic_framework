@@ -68,9 +68,16 @@ static void JudgeReadData(uint8_t *buff)
 				case ID_event_data: // 0x0101
 					memcpy(&referee_info.EventData, (buff + DATA_Offset), LEN_event_data);
 					break;
-				case ID_supply_projectile_action: // 0x0102
-					memcpy(&referee_info.SupplyProjectileAction, (buff + DATA_Offset), LEN_supply_projectile_action);
+				// case ID_supply_projectile_action: // 0x0102
+				// 	memcpy(&referee_info.SupplyProjectileAction, (buff + DATA_Offset), LEN_supply_projectile_action);
+				// 	break;
+				case ID_referee_warning: // 0x0104 // 新增
+					memcpy(&referee_info.Referee_Warning, (buff + DATA_Offset), LEN_referee_warning);
 					break;
+				case ID_dart_info: // 0x0105 // 新增
+					memcpy(&referee_info.Dart_Info, (buff + DATA_Offset), LEN_dart_info);
+					break;
+
 				case ID_game_robot_state: // 0x0201
 					memcpy(&referee_info.GameRobotState, (buff + DATA_Offset), LEN_game_robot_state);
 					break;
@@ -83,8 +90,8 @@ static void JudgeReadData(uint8_t *buff)
 				case ID_buff_musk: // 0x0204
 					memcpy(&referee_info.BuffMusk, (buff + DATA_Offset), LEN_buff_musk);
 					break;
-				case ID_aerial_robot_energy: // 0x0205
-					memcpy(&referee_info.AerialRobotEnergy, (buff + DATA_Offset), LEN_aerial_robot_energy);
+				// case ID_aerial_robot_energy: // 0x0205
+				// 	memcpy(&referee_info.AerialRobotEnergy, (buff + DATA_Offset), LEN_aerial_robot_energy);
 					break;
 				case ID_robot_hurt: // 0x0206
 					memcpy(&referee_info.RobotHurt, (buff + DATA_Offset), LEN_robot_hurt);
@@ -92,8 +99,42 @@ static void JudgeReadData(uint8_t *buff)
 				case ID_shoot_data: // 0x0207
 					memcpy(&referee_info.ShootData, (buff + DATA_Offset), LEN_shoot_data);
 					break;
+				case ID_projectile_allowance: // 0x0208 // 新增
+					memcpy(&referee_info.Projectile_Allowance, (buff + DATA_Offset), LEN_projectile_allowance);
+					break;
+				case ID_rfid_status: // 0x0209 // 新增
+					memcpy(&referee_info.RFID_Status, (buff + DATA_Offset), LEN_rfid_status);
+					break;
+				case ID_dart_client_cmd: // 0x020A // 新增
+					memcpy(&referee_info.Dart_Client_cmd, (buff + DATA_Offset), LEN_dart_client_cmd);
+					break;
+				case ID_ground_robot_position: // 0x020B // 新增
+					memcpy(&referee_info.Ground_Robot_Position, (buff + DATA_Offset), LEN_ground_robot_position);
+					break;
+				case ID_radar_mark_data: // 0x020C // 新增
+					memcpy(&referee_info.Radar_Mark_Data, (buff + DATA_Offset), LEN_radar_mark_data);
+					break;
+				case ID_sentry_info: // 0x020D // 新增
+					memcpy(&referee_info.Sentry_Info, (buff + DATA_Offset), LEN_sentry_info);
+					break;
+				case ID_radar_info: // 0x020E // 新增
+					memcpy(&referee_info.Radar_Info, (buff + DATA_Offset), LEN_radar_info);
+					break;
+
 				case ID_student_interactive: // 0x0301   syhtodo接收代码未测试
 					memcpy(&referee_info.ReceiveData, (buff + DATA_Offset), LEN_receive_data);
+					break;
+				case ID_map_command: // 0x0303 // 新增
+					memcpy(&referee_info.Map_Command, (buff + DATA_Offset), LEN_map_command);
+					break;
+				case ID_map_robot_data: // 0x0305 // 新增
+					memcpy(&referee_info.Map_Robot_Data, (buff + DATA_Offset), LEN_map_robot_data);
+					break;
+				case ID_map_data: // 0x0307 // 新增
+					memcpy(&referee_info.Map_Data, (buff + DATA_Offset), LEN_map_data);
+					break;
+				case ID_custom_info: // 0x0308 // 新增
+					memcpy(&referee_info.Custom_Info, (buff + DATA_Offset), LEN_custom_info);
 					break;
 				}
 			}
