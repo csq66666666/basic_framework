@@ -18,6 +18,13 @@
         "ins_task.h": "c",
         "can_comm.h": "c",
         "bsp_log.h": "c",
-        "memory.h": "c"
+        "memory.h": "c",
+        "remote_control.h": "c",
+        "robot.h": "c",
+        "robot_def.h": "c",
+        "stdint.h": "c",
+        "bsp_dwt.h": "c",
+        "referee_ui.h": "c",
+        "bsp_usart.h": "c"
     }
 }

@@ -21,7 +21,7 @@
 #include "usart.h"
 
 /* USER CODE BEGIN 0 */
-
+#include "robot_def.h"
 /* USER CODE END 0 */
 
 UART_HandleTypeDef huart1;
@@ -46,7 +46,7 @@ void MX_USART1_UART_Init(void)
 
   /* USER CODE END USART1_Init 1 */
   huart1.Instance = USART1;
-  huart1.Init.BaudRate = 921600;
+  huart1.Init.BaudRate = 115200;
   huart1.Init.WordLength = UART_WORDLENGTH_8B;
   huart1.Init.StopBits = UART_STOPBITS_1;
   huart1.Init.Parity = UART_PARITY_NONE;
@@ -104,7 +104,12 @@ void MX_USART6_UART_Init(void)
 
   /* USER CODE END USART6_Init 1 */
   huart6.Instance = USART6;
+#if defined(ONE_BOARD) || defined(CHASSIS_BOARD)  // 仅对工程做此处理
   huart6.Init.BaudRate = 115200;
+#endif
+#ifdef GIMBAL_BOARD 
+  huart6.Init.BaudRate = 921600;
+#endif
   huart6.Init.WordLength = UART_WORDLENGTH_8B;
   huart6.Init.StopBits = UART_STOPBITS_1;
   huart6.Init.Parity = UART_PARITY_NONE;

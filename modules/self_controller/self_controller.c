@@ -109,6 +109,7 @@ Self_Cntlr_s *SelfCntlrInit(UART_HandleTypeDef *sc_usart_handle)
         .usart_handle = sc_usart_handle,
         .recv_buff_size = 39,
         .module_callback = RefereeRxCallback,
+        .Init_Choice = USART_ADD_CALLBACK,
     };
     customize = USARTRegister(&custom_config);
     Daemon_Init_Config_s daemon_conf = {

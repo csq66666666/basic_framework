@@ -121,6 +121,8 @@ float Dot3d(float *v1, float *v2);
 
 float AverageFilter(float new_data, float *buf, uint8_t len);
 
+float RampFunction(float x, float fx, float y);
+
 #define rad_format(Ang) loop_float_constrain((Ang), -PI, PI)
 
 #endif

@@ -126,6 +126,7 @@ referee_info_t *RefereeInit(UART_HandleTypeDef *referee_usart_handle)
 	conf.module_callback = RefereeRxCallback;
 	conf.usart_handle = referee_usart_handle;
 	conf.recv_buff_size = RE_RX_BUFFER_SIZE; // mx 255(u8)
+	conf.Init_Choice = USART_INIT_NORMAL;
 	referee_usart_instance = USARTRegister(&conf);
 
 	Daemon_Init_Config_s daemon_conf = {

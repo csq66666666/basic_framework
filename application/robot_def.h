@@ -22,6 +22,9 @@
 // #define CHASSIS_BOARD // 底盘板
 #define GIMBAL_BOARD  // 云台板
 
+// #define USE_DT7     // 使用DT7遥控器进行控制
+#define USE_VT13    // 使用VT13(图传接收端)遥控器进行控制
+
 #define VISION_USE_VCP // 使用虚拟串口发送视觉数据
 // #define VISION_USE_UART // 使用串口发送视觉数据
 
@@ -29,14 +32,14 @@
 // 机械臂参数
 #define CALI_STEP_TIME 100                                              // 校准时间
 #define ACTION_STEP_TIME 50                                             // 动作完成判断时间
-#define yaw1_MAX 112.7f                                                 // yaw1最大角度
-#define yaw1_MIN -172.8f                                                // yaw1轴最小角度
+#define yaw1_MAX 172.8f                                                 // yaw1最大角度
+#define yaw1_MIN -112.7f                                                // yaw1轴最小角度
 
-#define yaw2_MAX 258.4f                                                 // yaw2最大角度
-#define yaw2_MIN 0.0f                                                   // yaw2轴最小角度
+#define yaw2_MAX 0.0f                                                   // yaw2最大角度
+#define yaw2_MIN -258.4f                                                // yaw2轴最小角度
 
-#define yaw3_MAX 150.0f                                                 // yaw3最大角度(待修改)
-#define yaw3_MIN -144.6f                                                // yaw3轴最小角度
+#define yaw3_MAX 144.6f                                                 // yaw3最大角度(待修改)
+#define yaw3_MIN -150.0f                                                // yaw3轴最小角度
 
 #define PITCH_DIFFER_MAX 82.0f                                          // pitch_differ轴最大角度
 #define PITCH_DIFFER_MIN -100.0f                                         // pitch_differ轴最小角度
@@ -67,7 +70,7 @@
 #define SHAFT_2_ROTOR_ROLL_DIFFER REDUCTION_RATIO_DIFFER                // 差速器roll轴角度转换到电机转子角度
 #define SHAFT_2_ROTOR_PITCH_DIFFER REDUCTION_RATIO_DIFFER               // 差速器pitch轴角度转换到电机转子角度
 
-#define YAW1_VERTICAL_ANGLE -65                                         // 大yaw轴与底盘左右边中垂线的夹角（逆时针为正）
+#define YAW1_VERTICAL_ANGLE -81                                         // 大yaw轴0点与底盘左右边中垂线的夹角（逆时针为正）
 // 滑移参数
 #define REDUCTION_RATIO_LIFT 19.0f                                      // 抬升电机减速比
 
@@ -85,8 +88,10 @@
 #define YAW_CHASSIS_ALIGN_ECD 2711  // 云台和底盘对齐指向相同方向时的电机编码器值,若对云台有机械改动需要修改
 #define YAW_ECD_GREATER_THAN_4096 0 // ALIGN_ECD值是否大于4096,是为1,否为0;用于计算云台偏转角度
 #define PITCH_HORIZON_ECD 3412      // 云台处于水平位置时编码器值,若对云台有机械改动需要修改
-#define PITCH_MAX_ANGLE 0           // 云台竖直方向最大角度 (注意反馈如果是陀螺仪，则填写陀螺仪的角度)
-#define PITCH_MIN_ANGLE 0           // 云台竖直方向最小角度 (注意反馈如果是陀螺仪，则填写陀螺仪的角度)
+#define PITCH_MAX_ANGLE 175           // 云台竖直方向最大角度 (注意反馈如果是陀螺仪，则填写陀螺仪的角度)
+#define PITCH_MIN_ANGLE 70           // 云台竖直方向最小角度 (注意反馈如果是陀螺仪，则填写陀螺仪的角度)
+#define YAW_MAX_ANGLE 270           // 云台水平方向最大角度 (注意反馈如果是陀螺仪，则填写陀螺仪的角度)
+#define YAW_MIN_ANGLE 10           // 云台水平方向最小角度 (注意反馈如果是陀螺仪，则填写陀螺仪的角度)
 // 发射参数
 #define ONE_BULLET_DELTA_ANGLE 36    // 发射一发弹丸拨盘转动的距离,由机械设计图纸给出
 #define REDUCTION_RATIO_LOADER 36.0f // 2006拨盘电机的减速比,英雄需要修改为3508的19.0f
@@ -187,14 +192,20 @@ typedef enum
 // 云台模式设置
 typedef enum
 {
-    GIMBAL_NOMOVE = 0,             // 云台锁定模式
-    GIMBAL_FREE_MODE,              // 云台自由运动模式
-    GIMBAL_FIX_ANGLE_MODE,         // 云台核心控制模式，保持云台yaw轴与地面成固定角度，请在校准模式后再开启
-    GIMBAL_GET_TWO_SILVER_MODE,    // 云台一位双银模式
-    GIMBAL_GET_GOLD_MODE,          // 云台取金矿模式
+    GIMBAL_NOMOVE = 0,              // 云台锁定模式
+    GIMBAL_FREE_MODE,               // 云台自由运动模式
+    GIMBAL_FIX_ANGLE_MODE,          // 云台核心控制模式，保持云台yaw轴与地面成固定角度，请在校准模式后再开启
+    GIMBAL_SLIVER_MINGING_MODE,     // 云台一位单银模式
+    GIMBAL_TWO_SLIVER_MINGING_MODE1,// 云台一位双银模式1
+    GIMBAL_TWO_SLIVER_MINGING_MODE2,// 云台一位双银模式2
+    GIMBAL_STORAGE_ORE_MODE1,       // 云台存矿仓矿石模式1
+    GIMBAL_STORAGE_ORE_MODE2,       // 云台存矿仓矿石模式2
+    GIMBAL_FETCH_ORE_MODE1,         // 云台取矿仓矿石模式1
+    GIMBAL_FETCH_ORE_MODE2,         // 云台取矿仓矿石模式2
+    GIMBAL_GOLD_MINING_MODE,        // 云台取金矿模式
 
-    GIMBAL_ZERO_FORCE,             // 废弃
-    GIMBAL_GYRO_MODE,              // 废弃
+    GIMBAL_ZERO_FORCE,              // 废弃
+    GIMBAL_GYRO_MODE,               // 废弃
 } gimbal_mode_e;
 
 
@@ -281,10 +292,12 @@ typedef struct
     float pitch;
     float chassis_rotate_wz;
 
-    int16_t yaw_free_angle;       // 逆时针为正
-    int16_t pitch_free_angle;     // 逆时针为正
-    int16_t yaw_fixed_angle;      // 逆时针为正
-    int16_t yaw1_angle;           // 逆时针为正
+    float yaw_free_angle;       // 逆时针为正
+    float pitch_free_angle;     // 逆时针为正
+    float yaw_fixed_angle;      // 逆时针为正
+    float pitch_add_angle;
+    float yaw_add_angle;
+    float yaw1_angle;           // 逆时针为正
 
     gimbal_mode_e gimbal_mode;
 } Gimbal_Ctrl_Cmd_s;
@@ -317,7 +330,7 @@ typedef struct
     // float real_vy;
     // float real_wz;
 
-   Self_Cntlr_s ctrl_data; // 自定义控制器数据
+//    Self_Cntlr_s ctrl_data; // 自定义控制器数据
 
 } Chassis_Upload_Data_s;
 
@@ -333,8 +346,8 @@ typedef struct
     attitude_t gimbal_imu_data;
     uint16_t yaw_motor_single_round_angle;
 
-    uint16_t yaw_free_angle_upload;
-    uint16_t yaw_fixed_angle_upload;
+    float yaw_free_angle_upload;
+    float yaw_fixed_angle_upload;
 } Gimbal_Upload_Data_s;
 
 typedef struct

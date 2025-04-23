@@ -13,7 +13,7 @@
 
 若要发送数据，调用`USARTSend()`。注意buffsize务必小于你创建的buff的大小，否则造成指针越界后果未知。
 
-串口硬件收到数据时，会将其存入`usart_instance.recv_buff[]`中，当收到完整一包数据，会调用设定的回调函数`module_callback`（即你注册时提供的解析函数）。在此函数中，你可以通过`usart_instance.recv_buff[]`访问串口收到的数据。
+串口硬件收到数据时，会将其存入`usart_instance.recv_buff[]`中，当收到完整一包数据，会调用所有设定的回调函数`module_callback`（即你注册时提供所有的解析函数）。在此函数中，你可以通过`usart_instance.recv_buff[]`访问串口收到的数据。
 
 ## 代码结构
 
@@ -33,15 +33,15 @@ typedef struct
     uint8_t recv_buff[USART_RXBUFF_LIMIT]; // 预先定义的最大buff大小,如果太小请修改USART_RXBUFF_LIMIT
     uint8_t recv_buff_size;                // 模块接收一包数据的大小
     UART_HandleTypeDef *usart_handle;      // 实例对应的usart_handle
-    usart_module_callback module_callback; // 解析收到的数据的回调函数
+    usart_module_callback module_callback[USART_CALLBACK_LIMIT]; // 解析收到的数据的回调函数,如果太少请修改USART_CALLBACK_LIMIT
 } usart_instance;
 ```
 
 - `DEVICE_USART_CNT`是开发板上可用的串口数量。
 
-- `USART_RXBUFF_LIMIT`是串口单次接收的数据长度上限，暂时设为128，如果需要更大的buffer容量，修改该值。
+- `USART_RXBUFF_LIMIT`是串口单次接收的数据长度上限，暂时设为256，如果需要更大的buffer容量，修改该值。
 
-- `usart_module_callback()`是模块提供给串口接收中断回调函数使用的协议解析函数指针。对于每个需要串口的模块，需要定义一个这样的函数用于解包数据。
+- `usart_module_callback()`是模块提供给串口接收中断回调函数使用的协议解析函数指针数组。对于每个需要串口的模块，需要定义一个这样的函数用于解包数据，该数组会存放同一个串口句柄中对应的所有回调函数，并对他们进行遍历调用。请注意当你注册一个新的回调函数时，一定要对包头和包尾进行判断，以免接收并对错误的数据包进行处理，同时也请勿在回调函数中对接收缓冲区recv_buff进行修改，以免影响其他的回调函数。
 
 - 每定义一个`usart_instance`，就代表一个串口的**实例**（对象）。一个串口实例内有接收buffer，单个数据包的大小，该串口对应的`HAL handle`（代表其使用的串口硬件具体是哪一个）以及用于解包数据的回调函数。
 
@@ -53,9 +53,9 @@ void USARTRegister(usart_instance *_instance);
 void USARTSend(usart_instance *_instance, uint8_t *send_buf, uint16_t send_size);
 ```
 
-- `USARTRegister`是用于初始化串口对象的接口，module层的模块对象（也应当为一个结构体）内要包含一个`usart_instance`。
+- `USARTRegister`是用于初始化串口对象的接口，module层的模块对象（也应当为一个结构体）内要包含一个`usart_instance`。同时，通过修改`Init_Choice`可以切换初始化选项，当你不同的moudle层模块使用同一个串口时，应将两者的选项均设为`USART_ADD_CALLBACK`。
 
-  **在调用该函数之前，需要先对其成员变量`*usart_handle`,`module_callback()`以及`recv_buff_size`进行赋值。**
+  **在调用该函数之前，需要先对其成员变量`*usart_handle`,`module_callback()`,`Init_Choice`以及`recv_buff_size`进行赋值。**
 
 - `USARTSend()`是通过模块通过其拥有的串口对象发送数据的接口，调用时传入的参数为串口实例指针，发送缓存以及此次要发送的数据长度（8-bit\*n)。
 

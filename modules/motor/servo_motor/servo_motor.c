@@ -33,20 +33,20 @@ void Servo_Motor_FreeAngle_Set(ServoInstance *Servo_Motor, int16_t S_angle)
 {
     switch (Servo_Motor->Servo_type)
     {
-    case Servo180:
-        if (S_angle > 180)
-            S_angle = 180;
-        break;
-    case Servo270:
-        if (S_angle > 270)
-            S_angle = 270;
-        break;
-    case Servo360:
-        if (S_angle > 100)
-            S_angle = 100;
-        break;
-    default:
-        break;
+        case Servo180:
+            if (S_angle > 180)
+                S_angle = 180;
+            break;
+        case Servo270:
+            if (S_angle > 270)
+                S_angle = 270;
+            break;
+        case Servo360:
+            if (S_angle > 100)
+                S_angle = 100;
+            break;
+        default:
+            break;
     }
     if (S_angle < 0)
         S_angle = 0;

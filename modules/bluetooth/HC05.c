@@ -34,6 +34,7 @@ HC05 *HC05Init(UART_HandleTypeDef *hc05_usart_handle)
     conf.module_callback = HC05RxCallback;
     conf.usart_handle = hc05_usart_handle;
     conf.recv_buff_size = HC05_BUFFERSIZE;
+    conf.Init_Choice = USART_INIT_NORMAL;
     hc05_usart_instance = USARTRegister(&conf);
 
     hc05_init_flag = 1;

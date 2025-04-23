@@ -421,24 +421,23 @@ static void UpperCaliMode()
     }
     else if (action_step == 4) // yaw123
     {
-
-            upper_solve.yaw3 = -upper_feedback_data.joint_data.yaw3 - 146;
-            upper_solve.yaw2 = -upper_feedback_data.joint_data.yaw2;
-            upper_solve.yaw1 = -upper_feedback_data.joint_data.yaw1 + 112.7;
-            upper_solve.pitch_differ = upper_feedback_data.joint_data.pitch_differ - 60;
-           
-            yaw2_flag = 0;      // 最上面有 = 0
-            yaw3_flag = 0;
-            yaw1_flag = 0;
-            upper_differ_motor_flag = 0;
-            UpperCalculate();
-            action_step ++;
+        upper_solve.yaw1 = -upper_feedback_data.joint_data.yaw1 + 128.8; // + 16.1
+        upper_solve.yaw2 = -upper_feedback_data.joint_data.yaw2 - 26.1;  // - 26.1
+        upper_solve.yaw3 = -upper_feedback_data.joint_data.yaw3 - 146;
+        upper_solve.pitch_differ = upper_feedback_data.joint_data.pitch_differ - 60;
+        
+        yaw2_flag = 0;      // 最上面有 = 0
+        yaw3_flag = 0;
+        yaw1_flag = 0;
+        upper_differ_motor_flag = 0;
+        UpperCalculate();
+        action_step ++;
             
-    }else if (action_step==5)
+    }else if (action_step == 5)
     {
         if ((fabsf(upper_yaw1_motor->measure.speed_aps) < 100)&&(fabsf(upper_yaw2_motor->measure.speed_aps) < 100)&&(fabsf(upper_yaw3_motor->measure.speed_aps) < 100)&&(fabsf(upper_differ_motor_l->measure.speed_aps) < 100) && (fabsf(upper_differ_motor_r->measure.speed_aps) < 100))
         {
-            cali_time++;
+            cali_time ++;
             if (cali_time > CALI_STEP_TIME)
             {
                 cali_time=0;
@@ -541,9 +540,9 @@ static void UpperOutput()
  */
 static void UpperSingleMode()
 {
-    upper_solve.yaw1 = -upper_cmd_recv.joint_data.yaw1; // yaw1轴转向与电机输出轴转向相反
-    upper_solve.yaw2 = -upper_cmd_recv.joint_data.yaw2; // yaw2轴转向与电机输出轴转向相反
-    upper_solve.yaw3 = -upper_cmd_recv.joint_data.yaw3; // yaw3轴转向与电机输出轴转向相反
+    upper_solve.yaw1 = upper_cmd_recv.joint_data.yaw1; 
+    upper_solve.yaw2 = upper_cmd_recv.joint_data.yaw2; 
+    upper_solve.yaw3 = upper_cmd_recv.joint_data.yaw3; 
     upper_solve.pitch_differ = upper_cmd_recv.joint_data.pitch_differ;
     upper_solve.roll_differ = upper_cmd_recv.joint_data.roll_differ;
     upper_solve.lift_dist = upper_cmd_recv.joint_data.lift_dist;
@@ -561,12 +560,12 @@ static void UpperSliverMiningMode()
     {
     case 1:
         // 第一步 打开抬升防止干涉
-        upper_solve.lift_dist = 160.5f;
+        upper_solve.lift_dist = 160.5f; // 改为安全高度
         break;
     case 2:
         // 第二步 展开机械臂
-        upper_solve.yaw1 = -112.7f;                                
-        upper_solve.yaw2 = -52.3f;                                
+        upper_solve.yaw1 = -96.6f;                              
+        upper_solve.yaw2 = -78.4f;                                
         upper_solve.yaw3 = 79.0f;                                
         upper_solve.pitch_differ = -100.0f;                       
         break;
@@ -577,7 +576,7 @@ static void UpperSliverMiningMode()
             upper_solve.lift_dist = 0.0f;                       
         break;
     case 4:
-        // 第四步：吸稳矿石后升起
+        // 第四步：吸稳矿石后升起 // 改为安全高度即可
         upper_solve.lift_dist = 450.0f;                           
         break;
     default:
@@ -618,9 +617,9 @@ static void UpperTwoSliverMiningMode()
         break;
     case 2:
         // 第二步 展开机械臂
+        upper_solve.yaw1 = -49.15f;
+        upper_solve.yaw2 = -56.4f;
         upper_solve.yaw3 = 0.0f;
-        upper_solve.yaw2 = -30.3f;
-        upper_solve.yaw1 = -65.25f;
         upper_solve.pitch_differ = -100.0f;
         break;
     case 3:
@@ -634,8 +633,8 @@ static void UpperTwoSliverMiningMode()
         upper_solve.lift_dist = 450.0f;
         break;
     case 5:
-        upper_solve.yaw2 = 0.0f;
-        upper_solve.yaw1 = 90.0f;
+        upper_solve.yaw1 = 106.1f;
+        upper_solve.yaw2 = -26.1f;
         break;
     case 6:
         // 第五步：存放在矿仓中
@@ -653,13 +652,13 @@ static void UpperTwoSliverMiningMode()
         break;
     case 8:
         // 第七步：机械臂归位
-        upper_solve.yaw3 = 0.0f;
-        upper_solve.yaw2 = 0.0f;
         upper_solve.yaw1 = 0.0f;
+        upper_solve.yaw2 = 0.0f;
+        upper_solve.yaw3 = 0.0f;
         upper_solve.pitch_differ = 0.0f;
         break;
     case 9:
-        // 第八步：抬升归位
+        // 第八步：抬升归位 // 这里不能是0了，应为安全高度，然后和第8步合并
         upper_solve.lift_dist = 0.0f;
         break;
     default:
@@ -713,8 +712,8 @@ static void UpperFetchOreMode1()
         upper_solve.lift_dist = 185.0f;       // 第一步：打开抬升
         break;
     case 2:
-        upper_solve.yaw1 = 40.72f;             // 第二步：机械臂就位
-        upper_solve.yaw2 = -57.84f;            
+        upper_solve.yaw1 = 56.82f;             // 第二步：机械臂就位
+        upper_solve.yaw2 = -83.94f;            
         upper_solve.yaw3 = 110.71f;            
         upper_solve.pitch_differ = 0.0f;    
         break;
@@ -770,8 +769,8 @@ static void UpperFetchOreMode2()
         upper_solve.lift_dist = 185.0f;       // 第一步：打开抬升
         break;
     case 2:
-        upper_solve.yaw1 = 44.85f;            // 第二步：机械臂就位
-        upper_solve.yaw2 = -14.21f;            
+        upper_solve.yaw1 = 60.95f;            // 第二步：机械臂就位
+        upper_solve.yaw2 = -40.31f;            
         upper_solve.yaw3 = 54.06f;            
         upper_solve.pitch_differ = 0.0f;    
         break;
@@ -817,9 +816,11 @@ static void UpperFetchOreMode2()
  * @brief 存矿仓矿石模式1
  *
  */
- static void UpperStorageOreMode1()
- {
+static void UpperStorageOreMode1()
+{
     static uint16_t cali_time = 0;
+    // static float init_time = 0;
+    // float deltaT = 0;
 
     switch (action_step)
     {
@@ -827,10 +828,16 @@ static void UpperFetchOreMode2()
         upper_solve.lift_dist = 450.0f;       // 第一步：打开抬升
         break;
     case 2:
-        upper_solve.yaw1 = 39.6f;            // 第二步：机械臂就位
-        upper_solve.yaw2 = 0.0f;            
-        upper_solve.yaw3 = 1.0f;            
-        upper_solve.pitch_differ = -100.0f;
+        // if (init_time == 0)
+        //     init_time = DWT_GetTimeline_s();
+        // deltaT = DWT_GetTimeline_s() - init_time;
+        // if (deltaT <= 2)
+        // {
+            upper_solve.yaw1 = 55.7f;// upper_solve.yaw1 + RampFunction(39.6f - upper_solve.yaw1, 2, deltaT);            // 第二步：机械臂就位
+            upper_solve.yaw2 = -26.1f;            
+            upper_solve.yaw3 = 1.0f;    
+            upper_solve.pitch_differ = -100.0f;
+        // }
         break;
     case 3:
         upper_solve.roll_differ = upper_cmd_recv.joint_data.roll_differ;    // 松开roll轴自由度允许自由调整至正确位姿
@@ -871,7 +878,7 @@ static void UpperFetchOreMode2()
     {
         ActionFinishJudge(action_step, cali_time, 0, ACTION_STEP_TIME);
     }
- }
+}
 
 /**
  * @brief 存矿仓矿石模式2
@@ -887,9 +894,9 @@ static void UpperStorageOreMode2()
         upper_solve.lift_dist = 450.0f;       // 第一步：打开抬升
         break;
     case 2:
-        upper_solve.yaw1 = 90.f;            // 第二步：机械臂就位
-        upper_solve.yaw2 = 0.0f;            
-        upper_solve.yaw3 = 0.0f;            
+        upper_solve.yaw1 = 118.79f;            // 第二步：机械臂就位
+        upper_solve.yaw2 = -56.4f;            
+        upper_solve.yaw3 = 100.58f;            
         upper_solve.pitch_differ = -100.0f;    
         break;
     case 3:
@@ -947,13 +954,13 @@ static void UpperGlodMiningMode()
         upper_solve.lift_dist = 160.5f;   // 第一步：展开抬升防止干涉
         break;
     case 2:
-        upper_solve.yaw1 = -65.25f;        // 第二步：机械臂归位
-        upper_solve.yaw2 = -132.5f;
+        upper_solve.yaw1 = -49.15f;        // 第二步：机械臂归位
+        upper_solve.yaw2 = -158.6f;
         upper_solve.yaw3 = 0.0f;
         upper_solve.pitch_differ = 0.0f;
         break;
     case 3:
-        upper_solve.lift_dist = 160.5f; // 第三步：抬升归位 // 参数待修改
+        upper_solve.lift_dist = 145.5f; // 第三步：抬升归位 // 参数待修改
         break;
     default:
         action_step = 0;
@@ -976,12 +983,13 @@ static void UpperGlodMiningMode()
  */
 static void UpperSelfControllerMode()
 {
-    upper_solve.lift_dist = upper_cmd_recv.ctrl_data.lift_dist;
+    upper_solve.lift_dist = upper_cmd_recv.joint_data.lift_dist; // 注意以后修改
     upper_solve.yaw1 = upper_cmd_recv.ctrl_data.yaw1;
     upper_solve.yaw2 = upper_cmd_recv.ctrl_data.yaw2;
     upper_solve.yaw3 = upper_cmd_recv.ctrl_data.yaw3;
     upper_solve.pitch_differ = upper_cmd_recv.ctrl_data.pitch;
     upper_solve.roll_differ = upper_cmd_recv.ctrl_data.roll;
+
 }
 
 /**

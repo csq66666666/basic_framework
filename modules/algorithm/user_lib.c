@@ -212,3 +212,9 @@ void MatInit(mat *m, uint8_t row, uint8_t col)
     m->numRows = row;
     m->pData = (float *)zmalloc(row * col * sizeof(float));
 }
+
+// 斜坡函数，f(0) = 0, 输入一对 x 和 f(x) 和自变量当前值 y ;输出当前函数值 f(y)
+float RampFunction(float x, float fx, float y)
+{
+    return fx / x * y;
+}

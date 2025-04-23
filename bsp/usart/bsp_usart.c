@@ -43,15 +43,30 @@ USARTInstance *USARTRegister(USART_Init_Config_s *init_config)
 
     for (uint8_t i = 0; i < idx; i++) // 检查是否已经注册过
         if (usart_instance[i]->usart_handle == init_config->usart_handle)
-            while (1)
-                LOGERROR("[bsp_usart] USART instance already registered!");
+            if (init_config->Init_Choice == USART_ADD_CALLBACK)
+            {
+                uint8_t j = 0;
+                for (;usart_instance[i]->module_callback[j] != NULL;j ++);   // 寻找到未被注册的回调函数指针数组位置
+                if (j >= USART_CALLBACK_LIMIT)                                // 防止数组溢出
+                    while (1)
+                        LOGERROR("[bsp_usart] USART instance have too much callbacks");
+                usart_instance[i]->module_callback[j] = init_config->module_callback;
+                // 将两次注册的缓冲区长度取高值，防止较长数据被截断
+                usart_instance[i]->recv_buff_size = usart_instance[i]->recv_buff_size > init_config->recv_buff_size ? usart_instance[i]->recv_buff_size : init_config->recv_buff_size;
+                HAL_UART_DMAStop(usart_instance[i]->usart_handle);  // 先关闭DMA
+                USARTServiceInit(usart_instance[i]);    // 再重新初始化实例，防止DMA未更新导致较长数据被截断
+                return usart_instance[i];
+            }
+            else
+                while (1)
+                    LOGERROR("[bsp_usart] USART instance already registered!");
 
     USARTInstance *instance = (USARTInstance *)malloc(sizeof(USARTInstance));
     memset(instance, 0, sizeof(USARTInstance));
 
     instance->usart_handle = init_config->usart_handle;
     instance->recv_buff_size = init_config->recv_buff_size;
-    instance->module_callback = init_config->module_callback;
+    instance->module_callback[0] = init_config->module_callback;
 
     usart_instance[idx++] = instance;
     USARTServiceInit(instance);
@@ -105,9 +120,11 @@ void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef *huart, uint16_t Size)
     { // find the instance which is being handled
         if (huart == usart_instance[i]->usart_handle)
         { // call the callback function if it is not NULL
-            if (usart_instance[i]->module_callback != NULL)
+            if (usart_instance[i]->module_callback[0] != NULL)
             {
-                usart_instance[i]->module_callback();
+                for (uint8_t j = 0;j < USART_CALLBACK_LIMIT;j ++)   // 遍历调用所有的回调函数
+                    if (usart_instance[i]->module_callback[j] != NULL)
+                        usart_instance[i]->module_callback[j]();
                 memset(usart_instance[i]->recv_buff, 0, Size); // 接收结束后清空buffer,对于变长数据是必要的
             }
             HAL_UARTEx_ReceiveToIdle_DMA(usart_instance[i]->usart_handle, usart_instance[i]->recv_buff, usart_instance[i]->recv_buff_size);
