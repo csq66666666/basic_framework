@@ -265,8 +265,7 @@ static void UpperCalculate()
  *
  */
 static void UpperCaliMode()
-{   
-    static uint16_t cali_time = 0;
+{   static uint16_t cali_time = 0;
     static uint16_t cali_time_yaw1 = 0;
     static uint16_t cali_time_yaw2 = 0;
     static uint16_t cali_time_yaw3 = 0;
@@ -434,8 +433,7 @@ static void UpperCaliMode()
         UpperCalculate();
         action_step ++;
             
-    }
-    else if (action_step == 5)
+    }else if (action_step == 5)
     {
         if ((fabsf(upper_yaw1_motor->measure.speed_aps) < 100)&&(fabsf(upper_yaw2_motor->measure.speed_aps) < 100)&&(fabsf(upper_yaw3_motor->measure.speed_aps) < 100)&&(fabsf(upper_differ_motor_l->measure.speed_aps) < 100) && (fabsf(upper_differ_motor_r->measure.speed_aps) < 100))
         {
@@ -457,6 +455,7 @@ static void UpperCaliMode()
             }
         }
     }
+    
     else if (action_step == 6) // 抬升归位
     {
         if (action_finish_flag == 0 && action_flag == 0) // step 1
