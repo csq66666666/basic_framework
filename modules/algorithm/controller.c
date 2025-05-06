@@ -184,6 +184,11 @@ float PIDCalculate(PIDInstance *pid, float measure, float ref)
         pid->Iout += pid->ITerm;                         // 累加积分
         pid->Output = pid->Pout + pid->Iout + pid->Dout; // 计算输出
 
+        if (pid->Ref_FF != NULL)                         // 前馈输出
+        {
+            pid->Output += pid->Kf * (*(pid->Ref_FF));
+        }
+            
         // 输出滤波
         if (pid->Improve & PID_OutputFilter)
             f_Output_Filter(pid);

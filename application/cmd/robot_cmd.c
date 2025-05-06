@@ -153,7 +153,7 @@ static void RemoteControlSet()
             }
             chassis_cmd_send.vx = 40.0f * (float)rc_data[TEMP].rc.rocker_r_; // _水平方向
             chassis_cmd_send.vy = 40.0f * (float)rc_data[TEMP].rc.rocker_r1; // |竖直方向
-            chassis_cmd_send.wz = -5.0f * (float)rc_data[TEMP].rc.rocker_l_; // ↺旋转方向 遥控器摇杆从左往右值增大,与旋转方向相反，所以取相反数
+            chassis_cmd_send.wz = -0.27f * (float)rc_data[TEMP].rc.rocker_l_; // ↺旋转方向 遥控器摇杆从左往右值增大,与旋转方向相反，所以取相反数
         }
         else if (switch_is_mid(rc_data[TEMP].rc.switch_left)) // 左侧开关状态为[中]
         {
@@ -248,9 +248,9 @@ static void RemoteControlSet()
             {
                 chassis_cmd_send.chassis_mode = CHASSIS_NORMAL;
             }
-            chassis_cmd_send.vx = 40.0f * (float)rc_data[TEMP].rc.rocker_r_; // _水平方向
-            chassis_cmd_send.vy = 40.0f * (float)rc_data[TEMP].rc.rocker_r1; // |竖直方向
-            chassis_cmd_send.wz = -5.0f * (float)rc_data[TEMP].rc.rocker_l_; // ↺旋转方向 遥控器摇杆从左往右值增大,与旋转方向相反，所以取相反数
+            chassis_cmd_send.vx = 50.0f * (float)rc_data[TEMP].rc.rocker_r_; // _水平方向
+            chassis_cmd_send.vy = 50.0f * (float)rc_data[TEMP].rc.rocker_r1; // |竖直方向
+            chassis_cmd_send.wz = -0.27f * (float)rc_data[TEMP].rc.rocker_l_; // ↺旋转方向 遥控器摇杆从左往右值增大,与旋转方向相反，所以取相反数
         }
         else if (rc_data[TEMP].rc.Stop_button_count % 2 == 1) // 模式切换按键按下奇数次
         {
@@ -322,13 +322,13 @@ static void MouseKeySet()
         {
             chassis_cmd_send.vx = 20000.0f * ((float)rc_data[TEMP].key[KEY_PRESS].a - (float)rc_data[TEMP].key[KEY_PRESS].d); // _水平方向
             chassis_cmd_send.vy = 20000.0f * ((float)rc_data[TEMP].key[KEY_PRESS].w - (float)rc_data[TEMP].key[KEY_PRESS].s); // |竖直方向
-            chassis_cmd_send.wz = 2500.0f * ((float)rc_data[TEMP].key[KEY_PRESS].q - (float)rc_data[TEMP].key[KEY_PRESS].e); // ↺自旋
+            chassis_cmd_send.wz = 178.2f * ((float)rc_data[TEMP].key[KEY_PRESS].q - (float)rc_data[TEMP].key[KEY_PRESS].e); // ↺自旋
         }
         else if (chassis_cmd_send.chassis_mode == CHASSIS_MINING)
         {
             chassis_cmd_send.vx = 5000.0f * ((float)rc_data[TEMP].key[KEY_PRESS].a - (float)rc_data[TEMP].key[KEY_PRESS].d); // _水平方向
             chassis_cmd_send.vy = 5000.0f * ((float)rc_data[TEMP].key[KEY_PRESS].w - (float)rc_data[TEMP].key[KEY_PRESS].s); // |竖直方向
-            chassis_cmd_send.wz = 1000.0f * ((float)rc_data[TEMP].key[KEY_PRESS].q - (float)rc_data[TEMP].key[KEY_PRESS].e); // ↺自旋
+            chassis_cmd_send.wz = 45.0f * ((float)rc_data[TEMP].key[KEY_PRESS].q - (float)rc_data[TEMP].key[KEY_PRESS].e); // ↺自旋
         }
     }
     else
@@ -360,14 +360,16 @@ static void MouseKeySet()
         upper_cmd_send.joint_data.pitch_differ += (0.5f * (float)rc_data[TEMP].key[KEY_PRESS_WITH_CTRL].w - 0.5f * (float)rc_data[TEMP].key[KEY_PRESS_WITH_CTRL].s);
         upper_cmd_send.joint_data.yaw3 += (0.5f * (float)rc_data[TEMP].key[KEY_PRESS_WITH_CTRL].a - 0.5f * (float)rc_data[TEMP].key[KEY_PRESS_WITH_CTRL].d);
     }
-
-    if (rc_data[TEMP].key_count[KEY_PRESS][15] % 2) // 最后一个键为b键
+    if ((gimbal_cmd_send.gimbal_mode == GIMBAL_FIX_ANGLE_MODE) || (gimbal_cmd_send.gimbal_mode == GIMBAL_FREE_MODE))
     {
-        gimbal_cmd_send.gimbal_mode = GIMBAL_FIX_ANGLE_MODE;
-    }
-    else
-    {
-        gimbal_cmd_send.gimbal_mode = GIMBAL_FREE_MODE;
+        if (rc_data[TEMP].key_count[KEY_PRESS][15] % 2) // 最后一个键为b键
+        {
+            gimbal_cmd_send.gimbal_mode = GIMBAL_FIX_ANGLE_MODE;
+        }
+        else
+        {
+            gimbal_cmd_send.gimbal_mode = GIMBAL_FREE_MODE;
+        }
     }
     // 小云台键鼠控制
     //  ctrl + shift  //    W/S     //    A/D

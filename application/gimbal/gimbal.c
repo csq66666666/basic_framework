@@ -88,7 +88,7 @@ static void GimbalFixAngleMode()
  */
 static void GimbalSliverMiningMode()
 {
-    static float pitch_temp_angle = 0, yaw_temp_angle = 0;
+    static float pitch_temp_angle = 141, yaw_temp_angle = 270;
     pitch_temp_angle += gimbal_cmd_recv.pitch_add_angle;
     yaw_temp_angle += gimbal_cmd_recv.yaw_add_angle;
     GimbalAngleConstrain(&yaw_temp_angle, &pitch_temp_angle);
@@ -102,7 +102,7 @@ static void GimbalSliverMiningMode()
  */
 static void GimbalTwoSliverMiningMode1()
 {
-    static float pitch_temp_angle = 0, yaw_temp_angle = 0;
+    static float pitch_temp_angle = 136, yaw_temp_angle = 240;
     pitch_temp_angle += gimbal_cmd_recv.pitch_add_angle;
     yaw_temp_angle += gimbal_cmd_recv.yaw_add_angle;
     GimbalAngleConstrain(&yaw_temp_angle, &pitch_temp_angle);
@@ -116,7 +116,7 @@ static void GimbalTwoSliverMiningMode1()
  */
 static void GimbalTwoSliverMiningMode2()
 {
-    static float pitch_temp_angle = 0, yaw_temp_angle = 0;
+    static float pitch_temp_angle = 136, yaw_temp_angle = 244;
     pitch_temp_angle += gimbal_cmd_recv.pitch_add_angle;
     yaw_temp_angle += gimbal_cmd_recv.yaw_add_angle;
     GimbalAngleConstrain(&yaw_temp_angle, &pitch_temp_angle);
@@ -130,7 +130,7 @@ static void GimbalTwoSliverMiningMode2()
  */
 static void GimbalStorageOreMode1()
 {
-    static float pitch_temp_angle = 0, yaw_temp_angle = 0;
+    static float pitch_temp_angle = 153, yaw_temp_angle = 270;
     pitch_temp_angle += gimbal_cmd_recv.pitch_add_angle;
     yaw_temp_angle += gimbal_cmd_recv.yaw_add_angle;
     GimbalAngleConstrain(&yaw_temp_angle, &pitch_temp_angle);
@@ -144,7 +144,7 @@ static void GimbalStorageOreMode1()
  */
 static void GimbalStorageOreMode2()
 {
-    static float pitch_temp_angle = 0, yaw_temp_angle = 0;
+    static float pitch_temp_angle = 133, yaw_temp_angle = 240;
     pitch_temp_angle += gimbal_cmd_recv.pitch_add_angle;
     yaw_temp_angle += gimbal_cmd_recv.yaw_add_angle;
     GimbalAngleConstrain(&yaw_temp_angle, &pitch_temp_angle);
@@ -158,7 +158,7 @@ static void GimbalStorageOreMode2()
  */
 static void GimbalFetchOreMode1()
 {
-    static float pitch_temp_angle = 0, yaw_temp_angle = 0;
+    static float pitch_temp_angle = 153, yaw_temp_angle = 270;
     pitch_temp_angle += gimbal_cmd_recv.pitch_add_angle;
     yaw_temp_angle += gimbal_cmd_recv.yaw_add_angle;
     GimbalAngleConstrain(&yaw_temp_angle, &pitch_temp_angle);
@@ -172,7 +172,7 @@ static void GimbalFetchOreMode1()
  */
 static void GimbalFetchOreMode2()
 {
-    static float pitch_temp_angle = 0, yaw_temp_angle = 0;
+    static float pitch_temp_angle = 153, yaw_temp_angle = 270;
     pitch_temp_angle += gimbal_cmd_recv.pitch_add_angle;
     yaw_temp_angle += gimbal_cmd_recv.yaw_add_angle;
     GimbalAngleConstrain(&yaw_temp_angle, &pitch_temp_angle);
@@ -186,12 +186,14 @@ static void GimbalFetchOreMode2()
  */
 static void GimbalGlodMiningMode()
 {
-    static float pitch_temp_angle = 0, yaw_temp_angle = 0;
+    static float pitch_temp_angle = 90, yaw_temp_angle = 212;
     pitch_temp_angle += gimbal_cmd_recv.pitch_add_angle;
     yaw_temp_angle += gimbal_cmd_recv.yaw_add_angle;
     GimbalAngleConstrain(&yaw_temp_angle, &pitch_temp_angle);
     Servo_Motor_FreeAngle_Set(servo_yaw_motor, (uint16_t)yaw_temp_angle);
     Servo_Motor_FreeAngle_Set(servo_pitch_motor, (uint16_t)pitch_temp_angle);
+    pitch_angle = pitch_temp_angle;                 // 该模式持续时间较短，故修改固定角度模式值保证舵机运动平滑
+    yaw_angle = yaw_temp_angle;
 }
 
 /**
@@ -215,6 +217,9 @@ static void GimbalModeControl()
         break;
     case GIMBAL_TWO_SLIVER_MINGING_MODE1: 
         GimbalTwoSliverMiningMode1();
+        break;
+    case GIMBAL_TWO_SLIVER_MINGING_MODE2: 
+        GimbalTwoSliverMiningMode2();
         break;
     case GIMBAL_STORAGE_ORE_MODE1: 
         GimbalStorageOreMode1();

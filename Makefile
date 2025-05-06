@@ -120,6 +120,7 @@ bsp/flash/bsp_flash.c \
 bsp/bsp_tools.c \
 modules/algorithm/controller.c \
 modules/algorithm/kalman_filter.c \
+modules/algorithm/lowpass_filter.c\
 modules/algorithm/QuaternionEKF.c \
 modules/algorithm/crc8.c \
 modules/algorithm/crc16.c \

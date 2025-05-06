@@ -1,3 +1,16 @@
+/**
+ * @file dmmotor.c
+ * @author Weedy
+ * @brief  达妙系列电机的驱动
+ * @version beta
+ * @date 2025-05-01
+ *
+ * @todo 等待增加 MIT 模式的完整驱动(目前只有力控,即T_ff),等待添加一拖四模式的驱动，等待修改电机控制任务的实现方式
+ * 
+ * @copyright Copyright (c) 2022
+ *
+ */
+
 #include "dmmotor.h"
 #include "memory.h"
 #include "general_def.h"
@@ -57,17 +70,30 @@ static void DMMotorDecode(CANInstance *motor_can)
 
 static void DMMotorLostCallback(void *motor_ptr)
 {
+    DMMotorSetMode(DM_CMD_MOTOR_MODE, motor_ptr); // 防止因为电机失能导致无返回值
+    DWT_Delay(0.1);
 }
+
 void DMMotorCaliEncoder(DMMotorInstance *motor)
 {
     DMMotorSetMode(DM_CMD_ZERO_POSITION, motor);
     DWT_Delay(0.1);
 }
-DMMotorInstance *DMMotorInit(Motor_Init_Config_s *config)
+
+/**
+ * @brief 达妙电机的初始化函数
+ *
+ * @param config 初始化数据指针
+ * @param Motor_Control_Mode 达妙电机控制模式选择
+ * 
+ * @attention 注意电机初始参数与上位机互相对应!!
+ */
+DMMotorInstance *DMMotorInit(Motor_Init_Config_s *config, DMControl_Mode_e Motor_Control_Mode)
 {
     DMMotorInstance *motor = (DMMotorInstance *)malloc(sizeof(DMMotorInstance));
     memset(motor, 0, sizeof(DMMotorInstance));
-    
+    motor->control_mode = Motor_Control_Mode;
+
     motor->motor_settings = config->controller_setting_init_config;
     PIDInit(&motor->current_PID, &config->controller_param_init_config.current_PID);
     PIDInit(&motor->speed_PID, &config->controller_param_init_config.speed_PID);
@@ -77,7 +103,6 @@ DMMotorInstance *DMMotorInit(Motor_Init_Config_s *config)
 
     config->can_init_config.can_module_callback = DMMotorDecode;
     config->can_init_config.id = motor;
-    motor->motor_can_instace = CANRegister(&config->can_init_config);
 
     Daemon_Init_Config_s conf = {
         .callback = DMMotorLostCallback,
@@ -86,18 +111,49 @@ DMMotorInstance *DMMotorInit(Motor_Init_Config_s *config)
     };
     motor->motor_daemon = DaemonRegister(&conf);
 
+    switch (motor->control_mode)
+    {
+    case MIT_MODE:
+        break;
+    case POSVEL_MODE:
+        config->can_init_config.tx_id += 0x100;
+        break;
+    case VEL_MODE:
+        config->can_init_config.tx_id += 0x200;
+        break;
+    case DJI_MODE:  // 等待修改
+        break;
+    default:
+        while (1)
+            LOGERROR("[dm_motor] undefined control mode!");
+        break;
+    }
+    motor->motor_can_instace = CANRegister(&config->can_init_config);
+
     DMMotorEnable(motor);
     DMMotorSetMode(DM_CMD_MOTOR_MODE, motor);
     DWT_Delay(0.1);
-    DMMotorCaliEncoder(motor);
-    DWT_Delay(0.1);
+    // DMMotorCaliEncoder(motor);           // 为了使电机的绝对值编码器起作用，不要在初始化时重新校准编码器零点
+    // DWT_Delay(0.1);
     dm_motor_instance[idx++] = motor;
     return motor;
 }
 
-void DMMotorSetRef(DMMotorInstance *motor, float ref)
+/**
+ * @brief 达妙电机设定目标值
+ *
+ * @param motor 目标电机指针
+ * @param ref1 位置目标值
+ * @param ref2 速度目标值
+ * @param ref3 电流/扭矩目标值,随电机控制模式而切换
+ * 
+ * @attention 请根据不同电机模式设置对应需要的目标值,不需要的目标值置 0 防止疯车
+ */
+void DMMotorSetRef(DMMotorInstance *motor, float ref1, float ref2, float ref3)
 {
-    motor->pid_ref = ref;
+    motor->pid_ref[0] = ref1;
+    motor->pid_ref[1] = ref2;
+    motor->pid_ref[2] = ref3;
 }
 
 void DMMotorEnable(DMMotorInstance *motor)
@@ -105,7 +161,7 @@ void DMMotorEnable(DMMotorInstance *motor)
     motor->stop_flag = MOTOR_ENALBED;
 }
 
-void DMMotorStop(DMMotorInstance *motor)//不使用使能模式是因为需要收到反馈
+void DMMotorStop(DMMotorInstance *motor) // 不使用使能模式是因为需要收到反馈
 {
     motor->stop_flag = MOTOR_STOP;
 }
@@ -116,48 +172,84 @@ void DMMotorOuterLoop(DMMotorInstance *motor, Closeloop_Type_e type)
 }
 
 
-//@Todo: 目前只实现了力控，更多位控PID等请自行添加
+//@Todo: 目前只实现了力控，更多位控PID等请自行添加 // MIT模式
 void DMMotorTask(void const *argument)
 {
-    float  pid_ref, set;
+    float set1, set2, set3;
     DMMotorInstance *motor = (DMMotorInstance *)argument;
-   //DM_Motor_Measure_s *measure = &motor->measure;
     Motor_Control_Setting_s *setting = &motor->motor_settings;
-    //CANInstance *motor_can = motor->motor_can_instace;
-    //uint16_t tmp;
-    DMMotor_Send_s motor_send_mailbox;
     while (1)
-    {
-        pid_ref = motor->pid_ref;
-        
-        set = pid_ref;
-        if (setting->motor_reverse_flag == MOTOR_DIRECTION_REVERSE)
-            set *= -1;
-       
-        LIMIT_MIN_MAX(set, DM_T_MIN, DM_T_MAX);
-        motor_send_mailbox.position_des = float_to_uint(0, DM_P_MIN, DM_P_MAX, 16);
-        motor_send_mailbox.velocity_des = float_to_uint(0, DM_V_MIN, DM_V_MAX, 12);
-        motor_send_mailbox.torque_des = float_to_uint(pid_ref, DM_T_MIN, DM_T_MAX, 12);
-        motor_send_mailbox.Kp = 0;
-        motor_send_mailbox.Kd = 0;
+    {        
+        set1 = motor->pid_ref[0];
+        set2 = motor->pid_ref[1];
+        set3 = motor->pid_ref[2];
+        switch (motor->control_mode)
+        {
+        case MIT_MODE:
+            if (setting->motor_reverse_flag == MOTOR_DIRECTION_REVERSE)
+                set3 *= -1;
+            DMMotor_Send_MIT_s motor_send_mailbox_MIT;
+            LIMIT_MIN_MAX(set3, DM_T_MIN, DM_T_MAX);
+            motor_send_mailbox_MIT.position_des = float_to_uint(0, DM_P_MIN, DM_P_MAX, 16);
+            motor_send_mailbox_MIT.velocity_des = float_to_uint(0, DM_V_MIN, DM_V_MAX, 12);
+            motor_send_mailbox_MIT.torque_des = float_to_uint(set3, DM_T_MIN, DM_T_MAX, 12);
+            motor_send_mailbox_MIT.Kp = 0;
+            motor_send_mailbox_MIT.Kd = 0;
 
-        if(motor->stop_flag == MOTOR_STOP)
-            motor_send_mailbox.torque_des = float_to_uint(0, DM_T_MIN, DM_T_MAX, 12);
+            if(motor->stop_flag == MOTOR_STOP)
+                motor_send_mailbox_MIT.torque_des = float_to_uint(0, DM_T_MIN, DM_T_MAX, 12);
 
-        motor->motor_can_instace->tx_buff[0] = (uint8_t)(motor_send_mailbox.position_des >> 8);
-        motor->motor_can_instace->tx_buff[1] = (uint8_t)(motor_send_mailbox.position_des);
-        motor->motor_can_instace->tx_buff[2] = (uint8_t)(motor_send_mailbox.velocity_des >> 4);
-        motor->motor_can_instace->tx_buff[3] = (uint8_t)(((motor_send_mailbox.velocity_des & 0xF) << 4) | (motor_send_mailbox.Kp >> 8));
-        motor->motor_can_instace->tx_buff[4] = (uint8_t)(motor_send_mailbox.Kp);
-        motor->motor_can_instace->tx_buff[5] = (uint8_t)(motor_send_mailbox.Kd >> 4);
-        motor->motor_can_instace->tx_buff[6] = (uint8_t)(((motor_send_mailbox.Kd & 0xF) << 4) | (motor_send_mailbox.torque_des >> 8));
-        motor->motor_can_instace->tx_buff[7] = (uint8_t)(motor_send_mailbox.torque_des);
+            motor->motor_can_instace->tx_buff[0] = (uint8_t)(motor_send_mailbox_MIT.position_des >> 8);
+            motor->motor_can_instace->tx_buff[1] = (uint8_t)(motor_send_mailbox_MIT.position_des);
+            motor->motor_can_instace->tx_buff[2] = (uint8_t)(motor_send_mailbox_MIT.velocity_des >> 4);
+            motor->motor_can_instace->tx_buff[3] = (uint8_t)(((motor_send_mailbox_MIT.velocity_des & 0xF) << 4) | (motor_send_mailbox_MIT.Kp >> 8));
+            motor->motor_can_instace->tx_buff[4] = (uint8_t)(motor_send_mailbox_MIT.Kp);
+            motor->motor_can_instace->tx_buff[5] = (uint8_t)(motor_send_mailbox_MIT.Kd >> 4);
+            motor->motor_can_instace->tx_buff[6] = (uint8_t)(((motor_send_mailbox_MIT.Kd & 0xF) << 4) | (motor_send_mailbox_MIT.torque_des >> 8));
+            motor->motor_can_instace->tx_buff[7] = (uint8_t)(motor_send_mailbox_MIT.torque_des);
 
-        CANTransmit(motor->motor_can_instace, 1);
+            CANTransmit(motor->motor_can_instace, 1);
+            break;
+        case POSVEL_MODE:
+            if (setting->motor_reverse_flag == MOTOR_DIRECTION_REVERSE)
+                set1 *= -1;
+            DMMotor_Send_PosVel_s motor_send_mailbox_PosVel;
+            LIMIT_MIN_MAX(set1, DM_P_MIN, DM_P_MAX);
+            LIMIT_MIN_MAX(set2, DM_V_MIN, DM_V_MAX);
+            motor_send_mailbox_PosVel.p_des.position_des = set1;
+            motor_send_mailbox_PosVel.v_des.velocity_des = set2;
 
-        osDelay(2);
+            if(motor->stop_flag == MOTOR_STOP)
+                motor_send_mailbox_PosVel.v_des.velocity_des = 0;
+                
+            memcpy(motor->motor_can_instace->tx_buff, &motor_send_mailbox_PosVel, 8);
+            CANTransmit(motor->motor_can_instace, 1);
+            break;
+        case VEL_MODE:
+            if (setting->motor_reverse_flag == MOTOR_DIRECTION_REVERSE)
+                set2 *= -1;
+            DMMotor_Send_Vel_s motor_send_mailbox_Vel;
+            LIMIT_MIN_MAX(set2, DM_V_MIN, DM_V_MAX);
+            motor_send_mailbox_Vel.v_des.velocity_des = set2;
+
+            if(motor->stop_flag == MOTOR_STOP)
+                motor_send_mailbox_Vel.v_des.velocity_des = 0;
+
+            memcpy(motor->motor_can_instace->tx_buff, &motor_send_mailbox_Vel, 4);
+            CANTransmit(motor->motor_can_instace, 1);
+            break;
+        default:
+            while (1)
+                LOGERROR("[dm_motor] undefined control mode!");
+            break;
+        }
+
+        osDelay(1);
+        DMMotorSetMode(DM_CMD_MOTOR_MODE, motor);
+        osDelay(1);
     }
 }
+
 void DMMotorControlInit()
 {
     char dm_task_name[5] = "dm";

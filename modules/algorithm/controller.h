@@ -71,6 +71,9 @@ typedef struct
     float Output_LPF_RC;     // 输出滤波器 RC = 1/omegac
     float Derivative_LPF_RC; // 微分滤波器系数
 
+    float Kf;                // 前馈系数
+    float *Ref_FF;           // 前馈参考值指针 // 若要设置前馈请为指针赋值
+
     //-----------------------------------
     // for calculating
     float Measure;
@@ -113,6 +116,9 @@ typedef struct // config parameter
     float CoefB;         // ITerm = Err*((A-abs(err)+B)/A)  when B<|err|<A+B
     float Output_LPF_RC; // RC = 1/omegac
     float Derivative_LPF_RC;
+
+    float Kf;
+    float *Ref_FF;
 } PID_Init_Config_s;
 
 /**

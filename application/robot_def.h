@@ -32,14 +32,14 @@
 // 机械臂参数
 #define CALI_STEP_TIME 100                                              // 校准时间
 #define ACTION_STEP_TIME 50                                             // 动作完成判断时间
-#define yaw1_MAX 172.8f                                                 // yaw1最大角度
-#define yaw1_MIN -112.7f                                                // yaw1轴最小角度
+#define yaw1_MAX 156.7f                                                 // yaw1最大角度
+#define yaw1_MIN -128.8f                                                // yaw1轴最小角度
 
-#define yaw2_MAX 0.0f                                                   // yaw2最大角度
-#define yaw2_MIN -258.4f                                                // yaw2轴最小角度
+#define yaw2_MAX 26.1f                                                   // yaw2最大角度
+#define yaw2_MIN -232.3f                                                // yaw2轴最小角度
 
-#define yaw3_MAX 144.6f                                                 // yaw3最大角度(待修改)
-#define yaw3_MIN -150.0f                                                // yaw3轴最小角度
+#define yaw3_MAX 140.3f                                                 // yaw3最大角度(待修改)
+#define yaw3_MIN -139.3f                                                // yaw3轴最小角度
 
 #define PITCH_DIFFER_MAX 82.0f                                          // pitch_differ轴最大角度
 #define PITCH_DIFFER_MIN -100.0f                                         // pitch_differ轴最小角度
@@ -56,9 +56,9 @@
 
 #define REDUCTION_RATIO_DIFFER 36.0f                                    // 差速器电机减速比
 
-#define ROTOR_2_SHAFT_YAW1 (GEAR_RATION_YAW1 / REDUCTION_RATIO_YAW1)        // 电机转子角度转换到yaw1轴角度
-#define ROTOR_2_SHAFT_YAW2 (GEAR_RATION_YAW2 / REDUCTION_RATIO_YAW2)        // 电机转子角度转换到yaw2轴角度
-#define ROTOR_2_SHAFT_YAW3 (GEAR_RATION_YAW3 / REDUCTION_RATIO_YAW3)        // 电机转子角度转换到yaw3轴角度
+#define ROTOR_2_SHAFT_YAW1 -(GEAR_RATION_YAW1 / REDUCTION_RATIO_YAW1)        // 电机转子角度转换到yaw1轴角度 // yaw1齿轮传动反向
+#define ROTOR_2_SHAFT_YAW2 -(GEAR_RATION_YAW2 / REDUCTION_RATIO_YAW2)        // 电机转子角度转换到yaw2轴角度 // yaw2齿轮传动反向
+#define ROTOR_2_SHAFT_YAW3 -(GEAR_RATION_YAW3 / REDUCTION_RATIO_YAW3)        // 电机转子角度转换到yaw3轴角度 // yaw3齿轮传动反向
 
 #define ROTOR_2_SHAFT_ROLL_DIFFER (1.0f / REDUCTION_RATIO_DIFFER)       // 电机转子角度转换到差速器roll轴角度
 #define ROTOR_2_SHAFT_PITCH_DIFFER (1.0f / REDUCTION_RATIO_DIFFER)      // 电机转子角度转换到差速器pitch轴角度
@@ -80,8 +80,9 @@
 
 #define LIFT_DIST_2_ANGLE (360.0f * REDUCTION_RATIO_LIFT / (2.0f * PI * LIFT_GEAR_R))      // 抬升距离转电机角度(可能待修改) // REDUCTION_RATIO_LIFT 原27.0
 
-#define SAFE_DIST 10.0f                                               // 安全距离(待修改)
+#define SAFE_DIST 10.0f                                               // 距抬升顶端机械限位安全距离
 #define LIFT_MAX_SAFE_DIST (LIFT_MAX_DIST - SAFE_DIST)                // 抬升最大安全距离(待修改)
+#define LIFT_SAFE_HEIGHT 248.52f                                      // 机械臂与底盘无干涉时的安全高度
 
 // **************************************************************************************************************************************** 以下无用
 // 云台参数

@@ -16,8 +16,9 @@
 #include "dji_motor.h"
 #include "message_center.h"
 #include "referee_task.h"
-// #include "self_controller.h"
 #include "elec_switch.h"
+#include "ins_task.h"
+#include "lowpass_filter.h"
 
 #include "general_def.h"
 #include "bsp_dwt.h"
@@ -34,7 +35,6 @@
 #include "can_comm.h"
 #include "ins_task.h"
 static CANCommInstance *chasiss_can_comm; // 双板通信CAN comm
-attitude_t *Chassis_IMU_data;
 #endif // CHASSIS_BOARD
 #ifdef ONE_BOARD
 static Publisher_t *chassis_pub;                    // 用于发布底盘的数据
@@ -46,10 +46,19 @@ static Chassis_Upload_Data_s chassis_feedback_data; // 底盘回传的反馈数�
 static referee_info_t *referee_data;       // 用于获取裁判系统的数据
 static Referee_Interactive_info_t ui_data; // UI数据，将底盘中的数据传入此结构体的对应变量中，UI会自动检测是否变化，对应显示UI
 
+static float wz_compensate;         // 底盘陀螺仪PID补偿值
+
 static DJIMotorInstance *motor_lf, *motor_rf, *motor_lb, *motor_rb; // left right forward back
 
-// static Self_Cntlr_s *self_ctrl_data;                                    // 自定义控制器数据接收
 static ElecSwitchInstance *valve_1, *valve_2, *valve_3, *valve_4, *pump1,*pump2; // 4个继电器加2个霍尔开关
+
+static PIDInstance Chassis_wz_PID_Low, Chassis_wz_PID_High;      // 底盘陀螺仪闭环控制 PID ,这里千万不能是指针，PIDInit()函数中没有 malloc 这一步
+
+attitude_t *Chassis_IMU_data;
+
+LowpassFilterInstance *Chassis_Yaw_Fliter;
+
+static uint32_t cnt;
 
 /* 私有函数计算的中介变量,设为静态避免参数传递的开销 */
 static float sin_theta, cos_theta;   // 设置底盘行进方向
@@ -59,6 +68,31 @@ static float vt_lf, vt_rf, vt_lb, vt_rb; // 底盘速度解算后的临时输出
 
 void ChassisInit()
 {
+    Chassis_IMU_data = INS_Init();
+
+    LowpassFilterConfig Fliter_config = {
+        .cutoff_freq = 75,
+        .sample_time = 0.005,
+    };
+    Chassis_Yaw_Fliter = LowpassFilterInit(&Fliter_config);
+
+    PID_Init_Config_s PID_config = {
+        .Kp = 350,
+        .Ki = 0,
+        .Kd = 36,
+        .IntegralLimit = 0,
+        .Improve = PID_Integral_Limit | PID_Derivative_On_Measurement,
+        .MaxOut = 3500,
+        .Kf = 17,
+        .Ref_FF = &(chassis_cmd_recv.wz),
+    };
+    PIDInit(&Chassis_wz_PID_High, &PID_config);
+    PID_config.Kp = 100;
+    PID_config.Kd = 10;
+    PID_config.Ref_FF = NULL;
+    PIDInit(&Chassis_wz_PID_Low, &PID_config);
+
+
     // 四个轮子的参数一样,改tx_id和反转标志位即可
     Motor_Init_Config_s chassis_motor_config = {
         .can_init_config.can_handle = &hcan1,
@@ -77,7 +111,7 @@ void ChassisInit()
                 .Kd = 0,
                 .IntegralLimit = 3000,
                 .Improve = PID_Trapezoid_Intergral | PID_Integral_Limit | PID_Derivative_On_Measurement,
-                .MaxOut = 15001,
+                .MaxOut = 15000,
             },
         },
         .controller_setting_init_config = {
@@ -106,7 +140,6 @@ void ChassisInit()
     motor_rb = DJIMotorInit(&chassis_motor_config);
 
     // referee_data = UITaskInit(&huart1, &ui_data); // 裁判系统初始化,会同时初始化UI（注意自定义控制器使用了学生串口huart6，我们的裁判系统接口为huart1）
-    // self_ctrl_data = SelfCntlrInit(&huart1);
 
     ElecSwitch_Init_Config_s valve_init_cofig = {
         .GPIOx = VALVE1_GPIO_Port,
@@ -135,8 +168,6 @@ void ChassisInit()
 
     // 发布订阅初始化,如果为双板,则需要can comm来传递消息
 #ifdef CHASSIS_BOARD
-    Chassis_IMU_data = INS_Init(); // 底盘IMU初始化
-
     CANComm_Init_Config_s comm_conf = {
         .can_config = {
             .can_handle = &hcan2,
@@ -159,6 +190,7 @@ void ChassisInit()
 #define RF_CENTER ((HALF_WHEEL_TRACK - CENTER_GIMBAL_OFFSET_X + HALF_WHEEL_BASE - CENTER_GIMBAL_OFFSET_Y) * DEGREE_2_RAD)
 #define LB_CENTER ((HALF_WHEEL_TRACK + CENTER_GIMBAL_OFFSET_X + HALF_WHEEL_BASE + CENTER_GIMBAL_OFFSET_Y) * DEGREE_2_RAD)
 #define RB_CENTER ((HALF_WHEEL_TRACK - CENTER_GIMBAL_OFFSET_X + HALF_WHEEL_BASE + CENTER_GIMBAL_OFFSET_Y) * DEGREE_2_RAD)
+
 /**
  * @brief 正运动学解算
  */
@@ -170,15 +202,36 @@ static void MecanumFKine()
 }
 
 /**
+ * @brief 底盘陀螺仪闭环分段PID
+ * 
+ * @todo 等待更加优雅的封装(如加入高级PID选项中)
+ */
+static void ChassisYawControl()
+{
+    static float ref_yaw = 0;
+    float dt = DWT_GetDeltaT(&cnt);
+    ref_yaw += chassis_cmd_recv.wz * dt;
+
+    LowpassFilterUpdate(Chassis_Yaw_Fliter, Chassis_IMU_data->YawTotalAngle);   // 对底盘陀螺仪值做低通滤波
+
+    static float err = 0;
+    err = Chassis_Yaw_Fliter->last_output - ref_yaw;
+    if (abs(err) <= 3)
+        wz_compensate = PIDCalculate(&Chassis_wz_PID_Low, Chassis_Yaw_Fliter->last_output, ref_yaw);
+    else
+        wz_compensate = PIDCalculate(&Chassis_wz_PID_High, Chassis_Yaw_Fliter->last_output, ref_yaw);
+}
+
+/**
  * @brief 逆运动学解算，计算每个轮毂电机的输出
  *        用宏进行预替换减小开销,运动解算具体过程参考教程
  */
 static void MecanumIKine()
 {
-    vt_rf = -chassis_vx + chassis_vy + chassis_cmd_recv.wz * RF_CENTER; // 2
-    vt_lf = chassis_vx + chassis_vy - chassis_cmd_recv.wz * LF_CENTER;  // 1
-    vt_lb = -chassis_vx + chassis_vy - chassis_cmd_recv.wz * LB_CENTER; // 4
-    vt_rb = chassis_vx + chassis_vy + chassis_cmd_recv.wz * RB_CENTER;  // 3
+    vt_rf = -chassis_vx + chassis_vy + wz_compensate * RF_CENTER; // 2
+    vt_lf = chassis_vx + chassis_vy - wz_compensate * LF_CENTER;  // 1
+    vt_lb = -chassis_vx + chassis_vy - wz_compensate * LB_CENTER; // 4
+    vt_rb = chassis_vx + chassis_vy + wz_compensate * RB_CENTER;  // 3
 }
 
 /**
@@ -193,19 +246,7 @@ static void ChassisOutput()
     DJIMotorSetRef(motor_lb, vt_lb);
     DJIMotorSetRef(motor_rb, vt_rb);
 }
-// /**
-//  * @brief 自定义控制器数据接收
-//  * 
-//  */
-// static void FeedbackUpdate()
-// {
-//     chassis_feedback_data.ctrl_data.lift_dist = self_ctrl_data->lift_dist;
-//     chassis_feedback_data.ctrl_data.yaw1 = self_ctrl_data->yaw1;
-//     chassis_feedback_data.ctrl_data.yaw2 = self_ctrl_data->yaw2;
-//     chassis_feedback_data.ctrl_data.yaw3 = self_ctrl_data->yaw3;
-//     chassis_feedback_data.ctrl_data.pitch = self_ctrl_data->pitch;
-//     chassis_feedback_data.ctrl_data.roll = self_ctrl_data->roll;
-// }
+
 /**
  * @brief 底盘加速度限幅
  *
@@ -306,10 +347,10 @@ static void AccelLimit()
  */
 static void ElecSwitchControl()
 {
-    (chassis_cmd_recv.pump_mode & VALVE_ARM1) ? ElecSwitchSet(valve_3) : ElecSwitchReset(valve_3);
-    (chassis_cmd_recv.pump_mode & VALVE_ARM2) ? ElecSwitchSet(valve_2) : ElecSwitchReset(valve_2);
-    (chassis_cmd_recv.pump_mode & VALVE_T1) ? ElecSwitchSet(valve_1) : ElecSwitchReset(valve_1);
-    (chassis_cmd_recv.pump_mode & VALVE_T2) ? ElecSwitchSet(valve_4) : ElecSwitchReset(valve_4);
+    (chassis_cmd_recv.pump_mode & VALVE_ARM1) ? ElecSwitchSet(valve_1) : ElecSwitchReset(valve_1);
+    (chassis_cmd_recv.pump_mode & VALVE_ARM2) ? ElecSwitchSet(valve_4) : ElecSwitchReset(valve_4);
+    (chassis_cmd_recv.pump_mode & VALVE_T1) ? ElecSwitchSet(valve_3) : ElecSwitchReset(valve_3);
+    (chassis_cmd_recv.pump_mode & VALVE_T2) ? ElecSwitchSet(valve_2) : ElecSwitchReset(valve_2);
     chassis_cmd_recv.pump_mode ? ElecSwitchSet(pump1) : ElecSwitchReset(pump1);
     chassis_cmd_recv.pump_mode ? ElecSwitchSet(pump2) : ElecSwitchReset(pump2);
 }
@@ -381,6 +422,9 @@ void ChassisTask()
 
     // 加速度限幅
     // AccelLimit();
+
+    // 底盘yaw轴控制PID计算
+    ChassisYawControl();
 
     // 根据控制模式进行逆运动学解算,计算底盘输出
     MecanumIKine();

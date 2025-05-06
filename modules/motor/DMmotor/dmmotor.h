@@ -15,6 +15,14 @@
 #define DM_T_MIN  (-18.0f)
 #define DM_T_MAX   18.0f
 
+typedef enum 
+{
+    MIT_MODE = 0,       // MIT模式
+    POSVEL_MODE,        // 位置速度模式
+    VEL_MODE,           // 速度模式
+    DJI_MODE,           // 一拖四模式
+} DMControl_Mode_e;
+
 typedef struct 
 {
     uint8_t id;
@@ -26,7 +34,7 @@ typedef struct
     float T_Mos;
     float T_Rotor;
     int32_t total_round;
-}DM_Motor_Measure_s;
+} DM_Motor_Measure_s;
 
 typedef struct
 {
@@ -35,9 +43,34 @@ typedef struct
     uint16_t torque_des;
     uint16_t Kp;
     uint16_t Kd;
-}DMMotor_Send_s;
+} DMMotor_Send_MIT_s;
+
+typedef struct
+{
+    union
+    {
+        float position_des;
+        uint8_t data[4];
+    } p_des;
+    union
+    {
+        float velocity_des;
+        uint8_t data[4];
+    } v_des;
+} DMMotor_Send_PosVel_s;
+
+typedef struct
+{
+    union
+    {
+        float velocity_des;
+        uint8_t data[4];
+    } v_des;
+} DMMotor_Send_Vel_s;
+
 typedef struct 
 {
+    DMControl_Mode_e control_mode;
     DM_Motor_Measure_s measure;
     Motor_Control_Setting_s motor_settings;
     PIDInstance current_PID;
@@ -47,12 +80,12 @@ typedef struct
     float *other_speed_feedback_ptr;
     float *speed_feedforward_ptr;
     float *current_feedforward_ptr;
-    float pid_ref;
+    float pid_ref[3];   // 位置;速度;电流/扭矩的目标值
     Motor_Working_Type_e stop_flag;
     CANInstance *motor_can_instace;
-    DaemonInstance* motor_daemon;
+    DaemonInstance *motor_daemon;
     uint32_t lost_cnt;
-}DMMotorInstance;
+} DMMotorInstance;
 
 typedef enum
 {
@@ -60,17 +93,19 @@ typedef enum
     DM_CMD_RESET_MODE = 0xfd,   // 停止
     DM_CMD_ZERO_POSITION = 0xfe, // 将当前的位置设置为编码器零位
     DM_CMD_CLEAR_ERROR = 0xfb // 清除电机过热错误
-}DMMotor_Mode_e;
+} DMMotor_Mode_e;
 
-DMMotorInstance *DMMotorInit(Motor_Init_Config_s *config);
+DMMotorInstance *DMMotorInit(Motor_Init_Config_s *config, DMControl_Mode_e Motor_Control_Mode);
 
-void DMMotorSetRef(DMMotorInstance *motor, float ref);
+void DMMotorSetRef(DMMotorInstance *motor, float ref1, float ref2, float ref3);
 
 void DMMotorOuterLoop(DMMotorInstance *motor,Closeloop_Type_e closeloop_type);
 
 void DMMotorEnable(DMMotorInstance *motor);
 
 void DMMotorStop(DMMotorInstance *motor);
+
 void DMMotorCaliEncoder(DMMotorInstance *motor);
+
 void DMMotorControlInit();
 #endif // !DMMOTOR

@@ -13,13 +13,15 @@
 #include "upper.h"
 #include "robot_def.h"
 #include "dji_motor.h"
+#include "dmmotor.h"
 #include "message_center.h"
 #include "general_def.h"
 #include "user_lib.h"
 // #include "vofa.h"
 
-// 上层机构所有电机定义  大YAW（3508）      同步带YAW（3508）  控制差速器YAW（2006） 左差速（2006）    右差速（2006）           升降（3508）
-static DJIMotorInstance *upper_yaw1_motor, *upper_yaw2_motor, *upper_yaw3_motor, *upper_differ_motor_l, *upper_differ_motor_r, *upper_lift_motor;
+// 上层机构所有电机定义  大YAW（3508）      同步带YAW（3508）     左差速（2006）         右差速（2006）           升降（3508）
+static DJIMotorInstance *upper_yaw1_motor, *upper_yaw2_motor, *upper_differ_motor_l, *upper_differ_motor_r, *upper_lift_motor;
+static DMMotorInstance *upper_yaw3_motor; // 控制差速器YAW（4310）
 static float upper_yaw1_op, upper_yaw2_op, upper_yaw3_op, upper_differ_l_op, upper_differ_r_op; // 机械臂电机输出数据,用于设定电机参考值
 static float upper_lift_op;                                                                     // 抬升电机输出数据,用于设定电机参考值
 static upper_mode_e upper_last_mode;                                                            // 上一次的模式
@@ -44,7 +46,7 @@ attitude_t *Upper_IMU_data;
     {                                                               \
         if (fabsf(upper_yaw1_motor->measure.speed_aps) < 100 &&      \
             fabsf(upper_yaw2_motor->measure.speed_aps) < 100 &&     \
-            fabsf(upper_yaw3_motor->measure.speed_aps) < 100 &&    \
+            fabsf(upper_yaw3_motor->measure.velocity) < 100 / RPM_2_RAD_PER_SEC / 100 &&\
             fabsf(upper_differ_motor_l->measure.speed_aps) < 100 && \
             fabsf(upper_differ_motor_r->measure.speed_aps) < 100 && \
             fabsf(upper_lift_motor->measure.speed_aps) < 100   \
@@ -134,38 +136,38 @@ void UpperInit()
     upper_motor_config.controller_param_init_config.angle_PID.Ki = 0;
     upper_motor_config.controller_param_init_config.angle_PID.Kd = 0;
     upper_motor_config.controller_param_init_config.angle_PID.IntegralLimit = 2000;
-    upper_motor_config.controller_param_init_config.angle_PID.MaxOut = 6000;
+    upper_motor_config.controller_param_init_config.angle_PID.MaxOut = 8000;
 
     upper_motor_config.controller_param_init_config.speed_PID.Kp = 4;
     upper_motor_config.controller_param_init_config.speed_PID.Ki = 0;
     upper_motor_config.controller_param_init_config.speed_PID.Kd = 0;
     upper_motor_config.controller_param_init_config.speed_PID.IntegralLimit = 2000;
-    upper_motor_config.controller_param_init_config.speed_PID.MaxOut = 6000;
+    upper_motor_config.controller_param_init_config.speed_PID.MaxOut = 8000;
 
     upper_motor_config.motor_type = M3508;
     upper_yaw2_motor = DJIMotorInit(&upper_motor_config);
     upper_yaw2_motor->measure.init_flag = 1;
 
     // 控制差速器YAW（2006）
-    upper_motor_config.can_init_config.can_handle = &hcan1;
-    upper_motor_config.can_init_config.tx_id = 4;
+    // upper_motor_config.can_init_config.can_handle = &hcan1;
+    // upper_motor_config.can_init_config.tx_id = 4;
 
-    upper_motor_config.controller_param_init_config.angle_PID.Kp = 10;
-    upper_motor_config.controller_param_init_config.angle_PID.Ki = 0;
-    upper_motor_config.controller_param_init_config.angle_PID.Kd = 0;
-    upper_motor_config.controller_param_init_config.angle_PID.IntegralLimit = 2000;
-    upper_motor_config.controller_param_init_config.angle_PID.MaxOut = 20000;
+    // upper_motor_config.controller_param_init_config.angle_PID.Kp = 10;
+    // upper_motor_config.controller_param_init_config.angle_PID.Ki = 0;
+    // upper_motor_config.controller_param_init_config.angle_PID.Kd = 0;
+    // upper_motor_config.controller_param_init_config.angle_PID.IntegralLimit = 2000;
+    // upper_motor_config.controller_param_init_config.angle_PID.MaxOut = 6000;
 
-    upper_motor_config.controller_param_init_config.speed_PID.Kp = 2.1;
-    upper_motor_config.controller_param_init_config.speed_PID.Ki = 0.21;
-    upper_motor_config.controller_param_init_config.speed_PID.Kd = 0;
-    upper_motor_config.controller_param_init_config.speed_PID.IntegralLimit = 3000;
-    upper_motor_config.controller_param_init_config.speed_PID.MaxOut = 15000;
+    // upper_motor_config.controller_param_init_config.speed_PID.Kp = 2.1;
+    // upper_motor_config.controller_param_init_config.speed_PID.Ki = 0.21;
+    // upper_motor_config.controller_param_init_config.speed_PID.Kd = 0;
+    // upper_motor_config.controller_param_init_config.speed_PID.IntegralLimit = 3000;
+    // upper_motor_config.controller_param_init_config.speed_PID.MaxOut = 6000;
 
-    upper_motor_config.controller_setting_init_config.motor_reverse_flag = MOTOR_DIRECTION_NORMAL;
-    upper_motor_config.motor_type = M2006;
-    upper_yaw3_motor = DJIMotorInit(&upper_motor_config);
-    upper_yaw3_motor->measure.init_flag = 1;
+    // upper_motor_config.controller_setting_init_config.motor_reverse_flag = MOTOR_DIRECTION_NORMAL;
+    // upper_motor_config.motor_type = M2006;
+    // upper_yaw3_motor = DJIMotorInit(&upper_motor_config);
+    // upper_yaw3_motor->measure.init_flag = 1;
 
     // 差速器左侧电机
     upper_motor_config.can_init_config.can_handle = &hcan1;
@@ -175,13 +177,13 @@ void UpperInit()
     upper_motor_config.controller_param_init_config.angle_PID.Ki = 0;
     upper_motor_config.controller_param_init_config.angle_PID.Kd = 0;
     upper_motor_config.controller_param_init_config.angle_PID.IntegralLimit = 2000;
-    upper_motor_config.controller_param_init_config.angle_PID.MaxOut = 10000;
+    upper_motor_config.controller_param_init_config.angle_PID.MaxOut = 6000;
 
     upper_motor_config.controller_param_init_config.speed_PID.Kp = 3;
     upper_motor_config.controller_param_init_config.speed_PID.Ki = 0;
     upper_motor_config.controller_param_init_config.speed_PID.Kd = 0;
     upper_motor_config.controller_param_init_config.speed_PID.IntegralLimit = 2000;
-    upper_motor_config.controller_param_init_config.speed_PID.MaxOut = 15000;
+    upper_motor_config.controller_param_init_config.speed_PID.MaxOut = 6000;
 
     upper_motor_config.controller_setting_init_config.motor_reverse_flag = MOTOR_DIRECTION_NORMAL;
     upper_motor_config.motor_type = M2006;
@@ -195,6 +197,15 @@ void UpperInit()
     upper_differ_motor_r = DJIMotorInit(&upper_motor_config);
     upper_differ_motor_r->measure.init_flag = 1;
 
+    // yaw3(J4310)
+    upper_motor_config.can_init_config.can_handle = &hcan2;
+    upper_motor_config.can_init_config.tx_id = 1;
+    upper_motor_config.can_init_config.rx_id = 0;
+    upper_motor_config.controller_setting_init_config.motor_reverse_flag = MOTOR_DIRECTION_NORMAL;
+    upper_yaw3_motor = DMMotorInit(&upper_motor_config, POSVEL_MODE);
+
+    DMMotorControlInit();
+    
     upper_pub = PubRegister("upper_feed", sizeof(Upper_Upload_Data_s));
     upper_sub = SubRegister("upper_cmd", sizeof(Upper_Ctrl_Cmd_s));
 }
@@ -207,7 +218,8 @@ static void UpperFeedUpdata()
 {
     upper_feedback_data.joint_data.yaw1 = (upper_yaw1_motor->measure.total_angle - upper_yaw1_motor->measure.init_angle) * ROTOR_2_SHAFT_YAW1;
     upper_feedback_data.joint_data.yaw2 = (upper_yaw2_motor->measure.total_angle - upper_yaw2_motor->measure.init_angle) * ROTOR_2_SHAFT_YAW2;
-    upper_feedback_data.joint_data.yaw3 = (upper_yaw3_motor->measure.total_angle - upper_yaw3_motor->measure.init_angle) * ROTOR_2_SHAFT_YAW3;
+    // upper_feedback_data.joint_data.yaw3 = (upper_yaw3_motor->measure.total_angle - upper_yaw3_motor->measure.init_angle) * ROTOR_2_SHAFT_YAW3;
+    upper_feedback_data.joint_data.yaw3 = -RAD_2_DEGREE * upper_yaw3_motor->measure.position / 4; // 电机转向反向,除以4是因为4310的返回值中一圈是8PI而非2PI
     upper_feedback_data.joint_data.roll_differ = (((upper_differ_motor_l->measure.total_angle - upper_differ_motor_l->measure.init_angle) + (upper_differ_motor_r->measure.total_angle - upper_differ_motor_r->measure.init_angle)) / 2.0f * GEAR_RATION_DIFFER) * ROTOR_2_SHAFT_ROLL_DIFFER; // 电机反装，测量的初始值需要取反
     upper_feedback_data.joint_data.pitch_differ = (((upper_differ_motor_l->measure.total_angle - upper_differ_motor_l->measure.init_angle) - (upper_differ_motor_r->measure.total_angle - upper_differ_motor_r->measure.init_angle)) / 2.0f) * ROTOR_2_SHAFT_PITCH_DIFFER; // 电机反装，测量值需要取反
 
@@ -222,11 +234,11 @@ static void UpperFeedUpdata()
  * @brief 上层机构电机使能
  *
  */
-static void UpperIMotorEnable()
+static void UpperMotorEnable()
 {
     DJIMotorEnable(upper_yaw1_motor);
     DJIMotorEnable(upper_yaw2_motor);
-    DJIMotorEnable(upper_yaw3_motor);
+    DMMotorEnable(upper_yaw3_motor);
     DJIMotorEnable(upper_differ_motor_l);
     DJIMotorEnable(upper_differ_motor_r);
     DJIMotorEnable(upper_lift_motor);
@@ -240,7 +252,7 @@ static void UpperZeroForceMode()
 {
     DJIMotorStop(upper_yaw1_motor);
     DJIMotorStop(upper_yaw2_motor);
-    DJIMotorStop(upper_yaw3_motor);
+    DMMotorStop(upper_yaw3_motor);
     DJIMotorStop(upper_differ_motor_l);
     DJIMotorStop(upper_differ_motor_r);
     DJIMotorStop(upper_lift_motor);
@@ -255,32 +267,32 @@ static void UpperCalculate()
 {
     upper_yaw1_op = upper_solve.yaw1 * SHAFT_2_ROTOR_YAW1 + upper_yaw1_motor->measure.init_angle; // yaw1轴转向与电机输出轴转向相反，宏SHAFT_2_ROTOR_YAW1取值为负
     upper_yaw2_op = upper_solve.yaw2 * SHAFT_2_ROTOR_YAW2 + upper_yaw2_motor->measure.init_angle; // yaw2轴转向与电机输出轴转向相反，宏SHAFT_2_ROTOR_YAW2取值为负
-    upper_yaw3_op = upper_solve.yaw3 * SHAFT_2_ROTOR_YAW3 + upper_yaw3_motor->measure.init_angle; // yaw3轴转向与电机输出轴转向相反，宏SHAFT_2_ROTOR_YAW3取值为负
+    upper_yaw3_op = -upper_solve.yaw3 * DEGREE_2_RAD; // 电机转向反向
     upper_differ_l_op = (upper_solve.pitch_differ + upper_solve.roll_differ / GEAR_RATION_DIFFER) * SHAFT_2_ROTOR_ROLL_DIFFER + upper_differ_motor_l->measure.init_angle; 
     upper_differ_r_op = (upper_solve.pitch_differ - upper_solve.roll_differ / GEAR_RATION_DIFFER) * SHAFT_2_ROTOR_ROLL_DIFFER - upper_differ_motor_r->measure.init_angle; // 电机反装，测量的初始值需要取反
     upper_lift_op = upper_solve.lift_dist * LIFT_DIST_2_ANGLE - upper_lift_motor->measure.init_angle; // 电机反装，测量的初始值需要取反
 }
+
 /**
  * @brief 上层机构校准模式
  *
  */
 static void UpperCaliMode()
-{   static uint16_t cali_time = 0;
+{   
+    static uint16_t cali_time = 0;
     static uint16_t cali_time_yaw1 = 0;
     static uint16_t cali_time_yaw2 = 0;
-    static uint16_t cali_time_yaw3 = 0;
     static uint16_t cali_time_differ= 0;
     
 
     static const float speed_maxout_differ = 15000;
-    static const float speed_maxout_yaw = 15000;
-    static const float angle_maxout_yaw = 10000;
+    static const float speed_maxout_yaw1_2 = 8000;
+    static const float angle_maxout_yaw1_2 = 8000;
 
     static const float speed_maxout_lift = 15000;
     static const float angle_maxout_lift = 15000;
     static float pitch_test_max;
     static float pitch_test_min;
-    static uint8_t yaw3_flag = 0;
     static uint8_t yaw2_flag = 0;
     static uint8_t yaw1_flag = 0;
     static uint8_t upper_differ_motor_flag = 0;
@@ -298,7 +310,7 @@ static void UpperCaliMode()
         {
             action_flag = 1;
             DJIMotorOuterLoop(upper_lift_motor, ANGLE_LOOP);
-            upper_lift_motor->motor_controller.angle_PID.MaxOut = 6000; // 防止回来过程中运动太快，有点小
+            upper_lift_motor->motor_controller.angle_PID.MaxOut = 6000; // 防止回来过程中运动太快
             upper_solve.lift_dist = upper_feedback_data.joint_data.lift_dist - 400; // 200这个高度待debug测量
             UpperCalculate();
         }
@@ -328,53 +340,34 @@ static void UpperCaliMode()
             }
         }
     }
-    else if (action_step == 2) // yaw3,yaw2,yaw1
+    else if (action_step == 2) // 更改PID闭环为速度环,控制电机以恒定速度打到限位
     { 
-        DJIMotorOuterLoop(upper_yaw3_motor, SPEED_LOOP);
         DJIMotorOuterLoop(upper_yaw1_motor, SPEED_LOOP);
         DJIMotorOuterLoop(upper_yaw2_motor, SPEED_LOOP);
         DJIMotorOuterLoop(upper_differ_motor_l, SPEED_LOOP);
         DJIMotorOuterLoop(upper_differ_motor_r, SPEED_LOOP);
-        upper_yaw3_motor->motor_controller.speed_PID.MaxOut = 8000;
         upper_yaw2_motor->motor_controller.speed_PID.MaxOut = 8000;
         upper_yaw1_motor->motor_controller.speed_PID.MaxOut = 8000;
         upper_differ_motor_l->motor_controller.speed_PID.MaxOut = 4000;
         upper_differ_motor_r->motor_controller.speed_PID.MaxOut = 4000;
-        upper_yaw3_op = -8000;
         upper_yaw2_op = -6000;
         upper_yaw1_op = 8000;
-        upper_differ_l_op = 4000;       // 先将堵转限幅，防止损伤过盈，后续等待机械修改完成后改回
+        upper_differ_l_op = 4000;
         upper_differ_r_op = 4000;
         action_step ++;
     }
-    else if (action_step == 3) // yaw123 differ lr
+    else if (action_step == 3) // 各电机堵转检测
     {
-        if (fabsf(upper_yaw3_motor->measure.speed_aps) < 50 && (yaw3_flag == 0))
-        {
-            cali_time_yaw3 ++;
-
-            if (cali_time_yaw3 > CALI_STEP_TIME)
-            {   
-                cali_time_yaw3 = 0;
-                DJIMotorOuterLoop(upper_yaw3_motor, ANGLE_LOOP);
-                upper_yaw3_motor->motor_controller.angle_PID.MaxOut = 7000;
-                upper_solve.yaw3 = -upper_feedback_data.joint_data.yaw3;
-
-                upper_yaw3_op = upper_solve.yaw3 * SHAFT_2_ROTOR_YAW3 + upper_yaw3_motor->measure.init_angle; // yaw3轴转向与电机输出轴转向相反，宏SHAFT_2_ROTOR_YAW3取值为负
-
-                yaw3_flag = 1;
-            }
-        }
         if (fabsf(upper_yaw2_motor->measure.speed_aps) < 50 && (yaw2_flag == 0))
         {
             cali_time_yaw2 ++;
 
-            if (cali_time_yaw2 > CALI_STEP_TIME)
+            if (cali_time_yaw2 > (CALI_STEP_TIME / 5))
             {   
                 cali_time_yaw2 = 0;
-                DJIMotorOuterLoop(upper_yaw2_motor, ANGLE_LOOP);
+                DJIMotorOuterLoop(upper_yaw2_motor, ANGLE_LOOP);                // 达到目标位置后修改为位置环控制,在保持位置的同时防止堵转时间过长损坏电机
                 upper_yaw2_motor->motor_controller.angle_PID.MaxOut = 6000;
-                upper_solve.yaw2 = -upper_feedback_data.joint_data.yaw2;
+                upper_solve.yaw2 = upper_feedback_data.joint_data.yaw2;
 
                 upper_yaw2_op = upper_solve.yaw2 * SHAFT_2_ROTOR_YAW2 + upper_yaw2_motor->measure.init_angle; // yaw2轴转向与电机输出轴转向相反，宏SHAFT_2_ROTOR_YAW2取值为负
 
@@ -385,12 +378,12 @@ static void UpperCaliMode()
         {
             cali_time_yaw1 ++;
 
-            if (cali_time_yaw1 > CALI_STEP_TIME)
+            if (cali_time_yaw1 > (CALI_STEP_TIME / 5))
             {   
                 cali_time_yaw1 = 0;
                 DJIMotorOuterLoop(upper_yaw1_motor, ANGLE_LOOP);
                 upper_yaw1_motor->motor_controller.angle_PID.MaxOut = 6000;
-                upper_solve.yaw1 = -upper_feedback_data.joint_data.yaw1; 
+                upper_solve.yaw1 = upper_feedback_data.joint_data.yaw1; 
 
                 upper_yaw1_op = upper_solve.yaw1 * SHAFT_2_ROTOR_YAW1 + upper_yaw1_motor->measure.init_angle; // yaw1轴转向与电机输出轴转向相反，宏SHAFT_2_ROTOR_YAW1取值为负
 
@@ -401,7 +394,7 @@ static void UpperCaliMode()
         {
             cali_time_differ ++;
 
-            if (cali_time_differ > CALI_STEP_TIME)
+            if (cali_time_differ > (CALI_STEP_TIME / 5))
             {   
                 cali_time_differ = 0;
                 DJIMotorOuterLoop(upper_differ_motor_l, ANGLE_LOOP);
@@ -414,37 +407,34 @@ static void UpperCaliMode()
                 upper_differ_motor_flag = 1;
             }
         }
-        if (yaw3_flag && yaw2_flag && yaw1_flag && upper_differ_motor_flag)
+        if (yaw2_flag && yaw1_flag && upper_differ_motor_flag)
         {
             action_step ++;
         }
     }
-    else if (action_step == 4) // yaw123
+    else if (action_step == 4) // 使用位置环控制各个轴回到设定原点
     {
-        upper_solve.yaw1 = -upper_feedback_data.joint_data.yaw1 + 128.8; // + 16.1
-        upper_solve.yaw2 = -upper_feedback_data.joint_data.yaw2 - 26.1;  // - 26.1
-        upper_solve.yaw3 = -upper_feedback_data.joint_data.yaw3 - 146;
+        upper_solve.yaw1 = upper_feedback_data.joint_data.yaw1 + 128.8; 
+        upper_solve.yaw2 = upper_feedback_data.joint_data.yaw2 - 26.1;  
         upper_solve.pitch_differ = upper_feedback_data.joint_data.pitch_differ - 60;
         
-        yaw2_flag = 0;      // 最上面有 = 0
-        yaw3_flag = 0;
+        yaw2_flag = 0;      
         yaw1_flag = 0;
         upper_differ_motor_flag = 0;
         UpperCalculate();
         action_step ++;
             
-    }else if (action_step == 5)
+    }else if (action_step == 5) // 回到原点后直接设置电机的零点
     {
-        if ((fabsf(upper_yaw1_motor->measure.speed_aps) < 100)&&(fabsf(upper_yaw2_motor->measure.speed_aps) < 100)&&(fabsf(upper_yaw3_motor->measure.speed_aps) < 100)&&(fabsf(upper_differ_motor_l->measure.speed_aps) < 100) && (fabsf(upper_differ_motor_r->measure.speed_aps) < 100))
+        if ((fabsf(upper_yaw1_motor->measure.speed_aps) < 100)&&(fabsf(upper_yaw2_motor->measure.speed_aps) < 100)&&(fabsf(upper_differ_motor_l->measure.speed_aps) < 100) && (fabsf(upper_differ_motor_r->measure.speed_aps) < 100))
         {
             cali_time ++;
             if (cali_time > CALI_STEP_TIME)
             {
-                cali_time=0;
+                cali_time = 0;
                 action_step ++; // step 6
                 upper_yaw1_motor->measure.init_angle = upper_yaw1_motor->measure.total_angle;
                 upper_yaw2_motor->measure.init_angle = upper_yaw2_motor->measure.total_angle;
-                upper_yaw3_motor->measure.init_angle = upper_yaw3_motor->measure.total_angle;
                 upper_differ_motor_l->measure.init_angle = upper_differ_motor_l->measure.total_angle;
                 upper_differ_motor_r->measure.init_angle = upper_differ_motor_r->measure.total_angle;
                 upper_solve.yaw3 = 0;
@@ -505,14 +495,11 @@ static void UpperCaliMode()
         upper_differ_motor_l->motor_controller.speed_PID.MaxOut = speed_maxout_differ;
         upper_differ_motor_r->motor_controller.speed_PID.MaxOut = speed_maxout_differ;
 
-        upper_yaw1_motor->motor_controller.speed_PID.MaxOut = speed_maxout_yaw;
-        upper_yaw1_motor->motor_controller.angle_PID.MaxOut = angle_maxout_yaw;
+        upper_yaw1_motor->motor_controller.speed_PID.MaxOut = speed_maxout_yaw1_2;
+        upper_yaw1_motor->motor_controller.angle_PID.MaxOut = angle_maxout_yaw1_2;
 
-        upper_yaw2_motor->motor_controller.speed_PID.MaxOut = speed_maxout_yaw;
-        upper_yaw2_motor->motor_controller.angle_PID.MaxOut = angle_maxout_yaw;
-
-        upper_yaw3_motor->motor_controller.speed_PID.MaxOut = speed_maxout_yaw;
-        upper_yaw3_motor->motor_controller.angle_PID.MaxOut = angle_maxout_yaw;
+        upper_yaw2_motor->motor_controller.speed_PID.MaxOut = speed_maxout_yaw1_2;
+        upper_yaw2_motor->motor_controller.angle_PID.MaxOut = angle_maxout_yaw1_2;
 
         upper_lift_motor->motor_controller.speed_PID.MaxOut = speed_maxout_lift;
         upper_lift_motor->motor_controller.angle_PID.MaxOut = angle_maxout_lift;
@@ -528,7 +515,7 @@ static void UpperOutput()
 {
     DJIMotorSetRef(upper_yaw1_motor, upper_yaw1_op);
     DJIMotorSetRef(upper_yaw2_motor, upper_yaw2_op);
-    DJIMotorSetRef(upper_yaw3_motor, upper_yaw3_op);
+    DMMotorSetRef(upper_yaw3_motor, upper_yaw3_op, 3.5, 0);
     DJIMotorSetRef(upper_differ_motor_l, upper_differ_l_op);
     DJIMotorSetRef(upper_differ_motor_r, upper_differ_r_op);
     DJIMotorSetRef(upper_lift_motor, upper_lift_op);
@@ -560,27 +547,31 @@ static void UpperSliverMiningMode()
     {
     case 1:
         // 第一步 打开抬升防止干涉
-        upper_solve.lift_dist = 160.5f; // 改为安全高度
+        upper_solve.lift_dist = LIFT_SAFE_HEIGHT;
+        upper_yaw1_motor->motor_controller.angle_PID.MaxOut = 5000; // yaw1限幅，防止运动太快将矿石甩掉
+        upper_yaw2_motor->motor_controller.angle_PID.MaxOut = 5000; // yaw2限幅，防止运动太快将矿石甩掉
         break;
     case 2:
         // 第二步 展开机械臂
-        upper_solve.yaw1 = -96.6f;                              
-        upper_solve.yaw2 = -78.4f;                                
-        upper_solve.yaw3 = 79.0f;                                
+        upper_solve.yaw1 = -128.8f;                              
+        upper_solve.yaw2 = 26.1f;                                
+        upper_solve.yaw3 = 0.0f;                                
         upper_solve.pitch_differ = -100.0f;                       
         break;
     case 3:
-        upper_solve.lift_dist = 40.0f;                       
+        upper_solve.lift_dist = 55.0f;                       
         if (upper_cmd_recv.cfm_flag == 1)
         // 第三步 抓取矿石：lift向下、吸住矿石
             upper_solve.lift_dist = 0.0f;                       
         break;
     case 4:
-        // 第四步：吸稳矿石后升起 // 改为安全高度即可
-        upper_solve.lift_dist = 450.0f;                           
+        // 第四步：吸稳矿石后升起
+        upper_solve.lift_dist = LIFT_SAFE_HEIGHT;                           
         break;
     default:
         action_step = 0;
+        upper_yaw1_motor->motor_controller.angle_PID.MaxOut = 8000; // yaw1取消限幅
+        upper_yaw2_motor->motor_controller.angle_PID.MaxOut = 8000; // yaw2取消限幅
         break;
     }
 
@@ -598,6 +589,16 @@ static void UpperSliverMiningMode()
     else
     {
         ActionFinishJudge(action_step, cali_time, 0, ACTION_STEP_TIME);
+        if (action_step == 1) // 退出模式后回到默认位置 // 写在这里可以在退出模式时强行覆盖掉原先 step1 的更改
+        {
+            upper_solve.yaw1 = 0.0f;
+            upper_solve.yaw2 = 0.0f;
+            upper_solve.yaw3 = 0.0f;
+            upper_solve.pitch_differ = 0.0f;
+            upper_solve.lift_dist = LIFT_SAFE_HEIGHT;
+            upper_yaw1_motor->motor_controller.angle_PID.MaxOut = 8000; // yaw1取消限幅
+            upper_yaw2_motor->motor_controller.angle_PID.MaxOut = 8000; // yaw2取消限幅    
+        }
     }
 }
 
@@ -613,17 +614,19 @@ static void UpperTwoSliverMiningMode()
     {
     case 1:
         // 第一步 打开抬升防止干涉
-        upper_solve.lift_dist = 160.5f;
+        upper_solve.lift_dist = LIFT_SAFE_HEIGHT;
+        upper_yaw1_motor->motor_controller.angle_PID.MaxOut = 5000; // yaw1限幅，防止运动太快将矿石甩掉
+        upper_yaw2_motor->motor_controller.angle_PID.MaxOut = 5000; // yaw2限幅，防止运动太快将矿石甩掉
         break;
     case 2:
         // 第二步 展开机械臂
-        upper_solve.yaw1 = -49.15f;
-        upper_solve.yaw2 = -56.4f;
+        upper_solve.yaw1 = -81.92f;
+        upper_solve.yaw2 = -11.59f;
         upper_solve.yaw3 = 0.0f;
         upper_solve.pitch_differ = -100.0f;
         break;
     case 3:
-        upper_solve.lift_dist = 50.0f;
+        upper_solve.lift_dist = 55.0f;
         if (upper_cmd_recv.cfm_flag == 1)
         // 第三步 抓取矿石：lift向下、吸住矿石
             upper_solve.lift_dist = 0.0f;
@@ -633,8 +636,8 @@ static void UpperTwoSliverMiningMode()
         upper_solve.lift_dist = 450.0f;
         break;
     case 5:
-        upper_solve.yaw1 = 106.1f;
-        upper_solve.yaw2 = -26.1f;
+        upper_solve.yaw1 = 73.40f;
+        upper_solve.yaw2 = 26.1f;
         break;
     case 6:
         // 第五步：存放在矿仓中
@@ -656,13 +659,12 @@ static void UpperTwoSliverMiningMode()
         upper_solve.yaw2 = 0.0f;
         upper_solve.yaw3 = 0.0f;
         upper_solve.pitch_differ = 0.0f;
-        break;
-    case 9:
-        // 第八步：抬升归位 // 这里不能是0了，应为安全高度，然后和第8步合并
-        upper_solve.lift_dist = 0.0f;
+        upper_solve.lift_dist = LIFT_SAFE_HEIGHT + 100;
         break;
     default:
         action_step = 0;
+        upper_yaw1_motor->motor_controller.angle_PID.MaxOut = 8000; // yaw1取消限幅
+        upper_yaw2_motor->motor_controller.angle_PID.MaxOut = 8000; // yaw2取消限幅
         break;
     }
 
@@ -688,13 +690,16 @@ static void UpperTwoSliverMiningMode()
     else
     {
         ActionFinishJudge(action_step, cali_time, 0, ACTION_STEP_TIME);
-        // if (action_step == 0) // 如果希望退出模式后回到默认位置,可以将此段代码解注释
-        // {
-        //     upper_solve.yaw3 = 0.0f;
-        //     upper_solve.yaw2 = 0.0f;
-        //     upper_solve.yaw1 = 0.0f;
-        //     upper_solve.pitch_differ = 0.0f;
-        // }
+        if (action_step == 1) // 退出模式后回到默认位置 // 写在这里可以在退出模式时强行覆盖掉原先 step1 的更改
+        {
+            upper_solve.yaw1 = 0.0f;
+            upper_solve.yaw2 = 0.0f;
+            upper_solve.yaw3 = 0.0f;
+            upper_solve.pitch_differ = 0.0f;
+            upper_solve.lift_dist = LIFT_SAFE_HEIGHT;
+            upper_yaw1_motor->motor_controller.angle_PID.MaxOut = 8000; // yaw1取消限幅
+            upper_yaw2_motor->motor_controller.angle_PID.MaxOut = 8000; // yaw2取消限幅
+        }
     }
 }
 
@@ -709,12 +714,14 @@ static void UpperFetchOreMode1()
     switch (action_step)
     {
     case 1:
-        upper_solve.lift_dist = 185.0f;       // 第一步：打开抬升
+        upper_solve.lift_dist = LIFT_SAFE_HEIGHT;       // 第一步：打开抬升
+        upper_yaw1_motor->motor_controller.angle_PID.MaxOut = 5000; // yaw1限幅，防止运动太快将矿石甩掉
+        upper_yaw2_motor->motor_controller.angle_PID.MaxOut = 5000; // yaw2限幅，防止运动太快将矿石甩掉
         break;
     case 2:
-        upper_solve.yaw1 = 56.82f;             // 第二步：机械臂就位
-        upper_solve.yaw2 = -83.94f;            
-        upper_solve.yaw3 = 110.71f;            
+        upper_solve.yaw1 = 15.90f;             // 第二步：机械臂就位
+        upper_solve.yaw2 = -18.22f;            
+        upper_solve.yaw3 = 82.06f;            
         upper_solve.pitch_differ = 0.0f;    
         break;
     case 3:
@@ -728,9 +735,12 @@ static void UpperFetchOreMode1()
         upper_solve.yaw2 = 0.0f;
         upper_solve.yaw3 = 0.0f;
         upper_solve.pitch_differ = 0.0f;
+        upper_solve.lift_dist = LIFT_SAFE_HEIGHT;
         break;
     default:
         action_step = 0;
+        upper_yaw1_motor->motor_controller.angle_PID.MaxOut = 8000; // yaw1取消限幅
+        upper_yaw2_motor->motor_controller.angle_PID.MaxOut = 8000; // yaw2取消限幅
         break;
     }
 
@@ -752,6 +762,16 @@ static void UpperFetchOreMode1()
     else
     {
         ActionFinishJudge(action_step, cali_time, 0, ACTION_STEP_TIME);
+        if (action_step == 1) // 退出模式后回到默认位置 // 写在这里可以在退出模式时强行覆盖掉原先 step1 的更改
+        {
+            upper_solve.yaw1 = 0.0f;
+            upper_solve.yaw2 = 0.0f;
+            upper_solve.yaw3 = 0.0f;
+            upper_solve.pitch_differ = 0.0f;
+            upper_solve.lift_dist = LIFT_SAFE_HEIGHT;
+            upper_yaw1_motor->motor_controller.angle_PID.MaxOut = 8000; // yaw1取消限幅
+            upper_yaw2_motor->motor_controller.angle_PID.MaxOut = 8000; // yaw2取消限幅
+        }
     }
 }
 
@@ -766,12 +786,14 @@ static void UpperFetchOreMode2()
     switch (action_step)
     {
     case 1:
-        upper_solve.lift_dist = 185.0f;       // 第一步：打开抬升
+        upper_solve.lift_dist = LIFT_SAFE_HEIGHT;       // 第一步：打开抬升
+        upper_yaw1_motor->motor_controller.angle_PID.MaxOut = 5000; // yaw1限幅，防止运动太快将矿石甩掉
+        upper_yaw2_motor->motor_controller.angle_PID.MaxOut = 5000; // yaw2限幅，防止运动太快将矿石甩掉
         break;
     case 2:
-        upper_solve.yaw1 = 60.95f;            // 第二步：机械臂就位
-        upper_solve.yaw2 = -40.31f;            
-        upper_solve.yaw3 = 54.06f;            
+        upper_solve.yaw1 = 32.62f;            // 第二步：机械臂就位
+        upper_solve.yaw2 = 26.10f;            
+        upper_solve.yaw3 = 31.97f;            
         upper_solve.pitch_differ = 0.0f;    
         break;
     case 3:
@@ -785,9 +807,12 @@ static void UpperFetchOreMode2()
         upper_solve.yaw2 = 0.0f;
         upper_solve.yaw3 = 0.0f;
         upper_solve.pitch_differ = 0.0f;
+        upper_solve.lift_dist = LIFT_SAFE_HEIGHT;
         break;
     default:
         action_step = 0;
+        upper_yaw1_motor->motor_controller.angle_PID.MaxOut = 8000; // yaw1取消限幅
+        upper_yaw2_motor->motor_controller.angle_PID.MaxOut = 8000; // yaw2取消限幅
         break;
     }
 
@@ -809,6 +834,16 @@ static void UpperFetchOreMode2()
     else
     {
         ActionFinishJudge(action_step, cali_time, 0, ACTION_STEP_TIME);
+        if (action_step == 1) // 退出模式后回到默认位置 // 写在这里可以在退出模式时强行覆盖掉原先 step1 的更改
+        { 
+            upper_solve.yaw1 = 0.0f;
+            upper_solve.yaw2 = 0.0f;
+            upper_solve.yaw3 = 0.0f;
+            upper_solve.pitch_differ = 0.0f;
+            upper_solve.lift_dist = LIFT_SAFE_HEIGHT;
+            upper_yaw1_motor->motor_controller.angle_PID.MaxOut = 8000; // yaw1取消限幅
+            upper_yaw2_motor->motor_controller.angle_PID.MaxOut = 8000; // yaw2取消限幅
+        }
     }
 }
 
@@ -826,6 +861,8 @@ static void UpperStorageOreMode1()
     {
     case 1:
         upper_solve.lift_dist = 450.0f;       // 第一步：打开抬升
+        upper_yaw1_motor->motor_controller.angle_PID.MaxOut = 5000; // yaw1限幅，防止运动太快将矿石甩掉
+        upper_yaw2_motor->motor_controller.angle_PID.MaxOut = 5000; // yaw2限幅，防止运动太快将矿石甩掉
         break;
     case 2:
         // if (init_time == 0)
@@ -833,9 +870,9 @@ static void UpperStorageOreMode1()
         // deltaT = DWT_GetTimeline_s() - init_time;
         // if (deltaT <= 2)
         // {
-            upper_solve.yaw1 = 55.7f;// upper_solve.yaw1 + RampFunction(39.6f - upper_solve.yaw1, 2, deltaT);            // 第二步：机械臂就位
-            upper_solve.yaw2 = -26.1f;            
-            upper_solve.yaw3 = 1.0f;    
+            upper_solve.yaw1 = 21.50f;// upper_solve.yaw1 + RampFunction(39.6f - upper_solve.yaw1, 2, deltaT);            // 第二步：机械臂就位
+            upper_solve.yaw2 = 17.29f;            
+            upper_solve.yaw3 = 31.97f;    
             upper_solve.pitch_differ = -100.0f;
         // }
         break;
@@ -853,9 +890,12 @@ static void UpperStorageOreMode1()
         upper_solve.yaw2 = 0.0f;
         upper_solve.yaw3 = 0.0f;
         upper_solve.pitch_differ = 0.0f;
+        upper_solve.lift_dist = LIFT_SAFE_HEIGHT;
         break;
     default:
         action_step = 0;
+        upper_yaw1_motor->motor_controller.angle_PID.MaxOut = 8000; // yaw1取消限幅
+        upper_yaw2_motor->motor_controller.angle_PID.MaxOut = 8000; // yaw2取消限幅
         break;
     }
 
@@ -877,6 +917,16 @@ static void UpperStorageOreMode1()
     else
     {
         ActionFinishJudge(action_step, cali_time, 0, ACTION_STEP_TIME);
+        if (action_step == 1) // 退出模式后回到默认位置 // 写在这里可以在退出模式时强行覆盖掉原先 step1 的更改
+        {
+            upper_solve.yaw1 = 0.0f;
+            upper_solve.yaw2 = 0.0f;
+            upper_solve.yaw3 = 0.0f;
+            upper_solve.pitch_differ = 0.0f;
+            upper_solve.lift_dist = LIFT_SAFE_HEIGHT;
+            upper_yaw1_motor->motor_controller.angle_PID.MaxOut = 8000; // yaw1取消限幅
+            upper_yaw2_motor->motor_controller.angle_PID.MaxOut = 8000; // yaw2取消限幅
+        }
     }
 }
 
@@ -892,11 +942,13 @@ static void UpperStorageOreMode2()
     {
     case 1:
         upper_solve.lift_dist = 450.0f;       // 第一步：打开抬升
+        upper_yaw1_motor->motor_controller.angle_PID.MaxOut = 5000; // yaw1限幅，防止运动太快将矿石甩掉
+        upper_yaw2_motor->motor_controller.angle_PID.MaxOut = 5000; // yaw2限幅，防止运动太快将矿石甩掉
         break;
     case 2:
-        upper_solve.yaw1 = 118.79f;            // 第二步：机械臂就位
-        upper_solve.yaw2 = -56.4f;            
-        upper_solve.yaw3 = 100.58f;            
+        upper_solve.yaw1 = 71.17f;            // 第二步：机械臂就位
+        upper_solve.yaw2 = 24.72f;            
+        upper_solve.yaw3 = -17.07f;            
         upper_solve.pitch_differ = -100.0f;    
         break;
     case 3:
@@ -913,9 +965,12 @@ static void UpperStorageOreMode2()
         upper_solve.yaw2 = 0.0f;
         upper_solve.yaw3 = 0.0f;
         upper_solve.pitch_differ = 0.0f;
+        upper_solve.lift_dist = LIFT_SAFE_HEIGHT;
         break;
     default:
         action_step = 0;
+        upper_yaw1_motor->motor_controller.angle_PID.MaxOut = 8000; // yaw1取消限幅
+        upper_yaw2_motor->motor_controller.angle_PID.MaxOut = 8000; // yaw2取消限幅
         break;
     }
 
@@ -936,7 +991,17 @@ static void UpperStorageOreMode2()
     }
     else
     {
-        ActionFinishJudge(action_step, cali_time, 0, ACTION_STEP_TIME);
+        ActionFinishJudge(action_step, cali_time, 0, ACTION_STEP_TIME); 
+        if (action_step == 1) // 退出模式后回到默认位置 // 写在这里可以在退出模式时强行覆盖掉原先 step1 的更改
+        {
+            upper_solve.yaw1 = 0.0f;
+            upper_solve.yaw2 = 0.0f;
+            upper_solve.yaw3 = 0.0f;
+            upper_solve.pitch_differ = 0.0f;
+            upper_solve.lift_dist = LIFT_SAFE_HEIGHT;
+            upper_yaw1_motor->motor_controller.angle_PID.MaxOut = 8000; // yaw1取消限幅
+            upper_yaw2_motor->motor_controller.angle_PID.MaxOut = 8000; // yaw2取消限幅
+        }
     }
 }
 
@@ -951,12 +1016,14 @@ static void UpperGlodMiningMode()
     switch (action_step)
     {
     case 1:
-        upper_solve.lift_dist = 160.5f;   // 第一步：展开抬升防止干涉
+        upper_solve.lift_dist = LIFT_SAFE_HEIGHT;   // 第一步：展开抬升防止干涉
+        upper_yaw1_motor->motor_controller.angle_PID.MaxOut = 5000; // yaw1限幅，防止运动太快将矿石甩掉
+        upper_yaw2_motor->motor_controller.angle_PID.MaxOut = 5000; // yaw2限幅，防止运动太快将矿石甩掉
         break;
     case 2:
-        upper_solve.yaw1 = -49.15f;        // 第二步：机械臂归位
-        upper_solve.yaw2 = -158.6f;
-        upper_solve.yaw3 = 0.0f;
+        upper_solve.yaw1 = -80.13f;        // 第二步：机械臂归位
+        upper_solve.yaw2 = -103.52f;
+        upper_solve.yaw3 = 0.0f; // -21.89f
         upper_solve.pitch_differ = 0.0f;
         break;
     case 3:
@@ -964,6 +1031,8 @@ static void UpperGlodMiningMode()
         break;
     default:
         action_step = 0;
+        upper_yaw1_motor->motor_controller.angle_PID.MaxOut = 8000; // yaw1取消限幅
+        upper_yaw2_motor->motor_controller.angle_PID.MaxOut = 8000; // yaw2取消限幅
         break;
     }
 
@@ -974,6 +1043,16 @@ static void UpperGlodMiningMode()
     else
     {
         ActionFinishJudge(action_step, cali_time, 0, ACTION_STEP_TIME);
+        if (action_step == 1) // 退出模式后回到默认位置 // 写在这里可以在退出模式时强行覆盖掉原先 step1 的更改
+        {
+            upper_solve.yaw1 = 0.0f;
+            upper_solve.yaw2 = 0.0f;
+            upper_solve.yaw3 = 0.0f;
+            upper_solve.pitch_differ = 0.0f;
+            upper_solve.lift_dist = LIFT_SAFE_HEIGHT;
+            upper_yaw1_motor->motor_controller.angle_PID.MaxOut = 8000; // yaw1取消限幅
+            upper_yaw2_motor->motor_controller.angle_PID.MaxOut = 8000; // yaw2取消限幅
+        }
     }
 }
 
@@ -983,13 +1062,12 @@ static void UpperGlodMiningMode()
  */
 static void UpperSelfControllerMode()
 {
-    upper_solve.lift_dist = upper_cmd_recv.joint_data.lift_dist; // 注意以后修改
+    upper_solve.lift_dist = upper_cmd_recv.ctrl_data.lift_dist;
     upper_solve.yaw1 = upper_cmd_recv.ctrl_data.yaw1;
     upper_solve.yaw2 = upper_cmd_recv.ctrl_data.yaw2;
     upper_solve.yaw3 = upper_cmd_recv.ctrl_data.yaw3;
     upper_solve.pitch_differ = upper_cmd_recv.ctrl_data.pitch;
     upper_solve.roll_differ = upper_cmd_recv.ctrl_data.roll;
-
 }
 
 /**
@@ -998,7 +1076,7 @@ static void UpperSelfControllerMode()
  */
 static void UpperModeControl()
 {
-    UpperIMotorEnable();
+    UpperMotorEnable();
     if (upper_cmd_recv.upper_mode != upper_last_mode)
         action_step = 1;
 
@@ -1062,9 +1140,9 @@ void UpperTask()
     // 更新反馈数据
     UpperFeedUpdata();
 
-    // lift_l = (upper_lift_motor_l->measure.total_angle - upper_lift_motor_l->measure.init_angle) / LIFT_DIST_2_ANGLE;
-    // lift_r = -(upper_lift_motor_r->measure.total_angle - upper_lift_motor_r->measure.init_angle) / LIFT_DIST_2_ANGLE;
-    // delta_lift = lift_l - lift_r;
+    // DMMotorCaliEncoder(upper_yaw3_motor);           // 为了使电机的绝对值编码器起作用，不要在初始化时重新校准编码器零点
+    // DWT_Delay(0.1);
+
     // 反馈上层机构数据
     PubPushMessage(upper_pub, (void *)&upper_feedback_data);
 }
