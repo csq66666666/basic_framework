@@ -42,7 +42,7 @@
 #define yaw3_MIN -139.3f                                                // yaw3轴最小角度
 
 #define PITCH_DIFFER_MAX 82.0f                                          // pitch_differ轴最大角度
-#define PITCH_DIFFER_MIN -100.0f                                         // pitch_differ轴最小角度
+#define PITCH_DIFFER_MIN -90.0f                                         // pitch_differ轴最小角度
 
 #define GEAR_RATION_YAW1 (16.0f / 64.0f)                                 // yaw1轴齿轮比
 #define GEAR_RATION_YAW2 (16.0f / 36.0f)                                 // yaw2轴齿轮比
@@ -166,11 +166,11 @@ typedef enum
     CHASSIS_ZERO_FORCE = 0, // 电流零输入
     CHASSIS_NORMAL,         // 正常
     CHASSIS_NO_MOVE,        // 不移动
-    CHASSIS_ROTATE,
-    CHASSIS_NO_FOLLOW,
-    CHASSIS_FOLLOW_GIMBAL_YAW,
+    CHASSIS_ROTATE, // *
+    CHASSIS_NO_FOLLOW,// *
+    CHASSIS_FOLLOW_GIMBAL_YAW,// *
     CHASSIS_MINING,         // 取矿行进模式
-    CHASSIS_CHARGE,         // 兑矿行进模式
+    CHASSIS_CHARGE,         // // 兑矿行进模式 *
 } chassis_mode_e;
 
 // 机械臂模式设置
@@ -193,7 +193,7 @@ typedef enum
 // 云台模式设置
 typedef enum
 {
-    GIMBAL_NOMOVE = 0,              // 云台锁定模式
+    GIMBAL_NOMOVE = 0,              // 云台锁定模式 // *
     GIMBAL_FREE_MODE,               // 云台自由运动模式
     GIMBAL_FIX_ANGLE_MODE,          // 云台核心控制模式，保持云台yaw轴与地面成固定角度，请在校准模式后再开启
     GIMBAL_SLIVER_MINGING_MODE,     // 云台一位单银模式
@@ -204,6 +204,7 @@ typedef enum
     GIMBAL_FETCH_ORE_MODE1,         // 云台取矿仓矿石模式1
     GIMBAL_FETCH_ORE_MODE2,         // 云台取矿仓矿石模式2
     GIMBAL_GOLD_MINING_MODE,        // 云台取金矿模式
+    GIMBAL_RESET,                   // 云台复位
 
     GIMBAL_ZERO_FORCE,              // 废弃
     GIMBAL_GYRO_MODE,               // 废弃
@@ -270,8 +271,11 @@ typedef struct
     uint8_t pump_mode;
 
     // UI部分
-    // upper_mode_e upper_mode;
+    upper_mode_e upper_mode;
     gimbal_mode_e gimbal_mode;
+    uint8_t UI_Init_Flag;
+    uint8_t Ore_Storage_Flag1; // 矿仓1存放标志位
+    uint8_t Ore_Storage_Flag2; // 矿仓2存放标志位
 } Chassis_Ctrl_Cmd_s;
 
 //cmd发布的数据由upper订阅

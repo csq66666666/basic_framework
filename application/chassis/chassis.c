@@ -35,7 +35,7 @@
 #include "can_comm.h"
 #include "ins_task.h"
 static CANCommInstance *chasiss_can_comm; // 双板通信CAN comm
-#endif // CHASSIS_BOARD
+#endif                                    // CHASSIS_BOARD
 #ifdef ONE_BOARD
 static Publisher_t *chassis_pub;                    // 用于发布底盘的数据
 static Subscriber_t *chassis_sub;                   // 用于订阅底盘的控制命令
@@ -46,13 +46,13 @@ static Chassis_Upload_Data_s chassis_feedback_data; // 底盘回传的反馈数�
 static referee_info_t *referee_data;       // 用于获取裁判系统的数据
 static Referee_Interactive_info_t ui_data; // UI数据，将底盘中的数据传入此结构体的对应变量中，UI会自动检测是否变化，对应显示UI
 
-static float wz_compensate;         // 底盘陀螺仪PID补偿值
+static float wz_compensate; // 底盘陀螺仪PID补偿值
 
 static DJIMotorInstance *motor_lf, *motor_rf, *motor_lb, *motor_rb; // left right forward back
 
-static ElecSwitchInstance *valve_1, *valve_2, *valve_3, *valve_4, *pump1,*pump2; // 4个继电器加2个霍尔开关
+static ElecSwitchInstance *valve_1, *valve_2, *valve_3, *valve_4, *pump1, *pump2; // 4个继电器加2个霍尔开关
 
-static PIDInstance Chassis_wz_PID_Low, Chassis_wz_PID_High;      // 底盘陀螺仪闭环控制 PID ,这里千万不能是指针，PIDInit()函数中没有 malloc 这一步
+static PIDInstance Chassis_wz_PID_Low, Chassis_wz_PID_High; // 底盘陀螺仪闭环控制 PID ,这里千万不能是指针，PIDInit()函数中没有 malloc 这一步
 
 attitude_t *Chassis_IMU_data;
 
@@ -91,7 +91,6 @@ void ChassisInit()
     PID_config.Kd = 10;
     PID_config.Ref_FF = NULL;
     PIDInit(&Chassis_wz_PID_Low, &PID_config);
-
 
     // 四个轮子的参数一样,改tx_id和反转标志位即可
     Motor_Init_Config_s chassis_motor_config = {
@@ -139,7 +138,7 @@ void ChassisInit()
     chassis_motor_config.controller_setting_init_config.motor_reverse_flag = MOTOR_DIRECTION_REVERSE;
     motor_rb = DJIMotorInit(&chassis_motor_config);
 
-    // referee_data = UITaskInit(&huart1, &ui_data); // 裁判系统初始化,会同时初始化UI（注意自定义控制器使用了学生串口huart6，我们的裁判系统接口为huart1）
+    referee_data = UITaskInit(&huart1, &ui_data); // 裁判系统初始化,会同时初始化UI（注意自定义控制器使用了学生串口huart6，我们的裁判系统接口为huart1）
 
     ElecSwitch_Init_Config_s valve_init_cofig = {
         .GPIOx = VALVE1_GPIO_Port,
@@ -203,7 +202,7 @@ static void MecanumFKine()
 
 /**
  * @brief 底盘陀螺仪闭环分段PID
- * 
+ *
  * @todo 等待更加优雅的封装(如加入高级PID选项中)
  */
 static void ChassisYawControl()
@@ -212,7 +211,7 @@ static void ChassisYawControl()
     float dt = DWT_GetDeltaT(&cnt);
     ref_yaw += chassis_cmd_recv.wz * dt;
 
-    LowpassFilterUpdate(Chassis_Yaw_Fliter, Chassis_IMU_data->YawTotalAngle);   // 对底盘陀螺仪值做低通滤波
+    LowpassFilterUpdate(Chassis_Yaw_Fliter, Chassis_IMU_data->YawTotalAngle); // 对底盘陀螺仪值做低通滤波
 
     static float err = 0;
     err = Chassis_Yaw_Fliter->last_output - ref_yaw;
@@ -399,6 +398,22 @@ static void ChassisModeControl()
     chassis_vy = chassis_cmd_recv.vx * sin_theta + chassis_cmd_recv.vy * cos_theta;
 }
 
+static void UIDataRefresh()
+{
+    // 先更新数据
+    ui_data.chassis_last_mode = ui_data.chassis_mode;
+    ui_data.gimbal_last_mode = ui_data.gimbal_mode;
+    ui_data.upper_last_mode = ui_data.upper_mode;
+    ui_data.flag1_last_mode = ui_data.flag1_mode;
+    ui_data.flag2_last_mode = ui_data.flag2_mode;
+    // 再填入新数据
+    ui_data.chassis_mode = chassis_cmd_recv.chassis_mode;
+    ui_data.gimbal_mode = chassis_cmd_recv.gimbal_mode;
+    ui_data.upper_mode = chassis_cmd_recv.upper_mode;
+    ui_data.flag1_mode = chassis_cmd_recv.Ore_Storage_Flag1;
+    ui_data.flag2_mode = chassis_cmd_recv.Ore_Storage_Flag2;
+}
+
 /* 机器人底盘控制核心任务 */
 void ChassisTask()
 {
@@ -435,8 +450,11 @@ void ChassisTask()
     // // 底盘回传的反馈数据
     // FeedbackUpdate();
 
+    // 刷新 UI
+    if (chassis_cmd_recv.UI_Init_Flag == 1)
+        MyUIInit();
     // 用于将收到的ui数据更新
-    // ui_feedup();
+    UIDataRefresh();
 
     // UI_INIT_SECOND();
 
