@@ -102,7 +102,7 @@ void ChassisInit()
                 .Kd = 0,  // 0
                 .IntegralLimit = 3000,
                 .Improve = PID_Trapezoid_Intergral | PID_Integral_Limit | PID_Derivative_On_Measurement,
-                .MaxOut = 12000,
+                .MaxOut = 15000,
             },
             .current_PID = {
                 .Kp = 0.5, // 0.4

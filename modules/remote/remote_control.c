@@ -210,7 +210,7 @@ static void RemoteControlRxCallback()
  */
 static void RCLostCallback(void *id)
 {
-    memset(rc_ctrl, 0, sizeof(rc_ctrl)); // 清空遥控器数据
+    memset(rc_ctrl, 0, sizeof(rc_ctrl)); // 清空遥控器数据 // 安全措施,暂时注释,记得加回来
     USARTServiceInit(rc_usart_instance); // 尝试重新启动接收
     LOGWARNING("[rc] remote control lost");
 }

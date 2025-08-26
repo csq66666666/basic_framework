@@ -42,7 +42,7 @@
 #define yaw3_MIN -139.3f                                                // yaw3轴最小角度
 
 #define PITCH_DIFFER_MAX 82.0f                                          // pitch_differ轴最大角度
-#define PITCH_DIFFER_MIN -90.0f                                         // pitch_differ轴最小角度
+#define PITCH_DIFFER_MIN -95.0f                                         // pitch_differ轴最小角度
 
 #define GEAR_RATION_YAW1 (16.0f / 64.0f)                                 // yaw1轴齿轮比
 #define GEAR_RATION_YAW2 (16.0f / 36.0f)                                 // yaw2轴齿轮比
@@ -76,7 +76,7 @@
 
 #define LIFT_GEAR_R 31.275f                                             // 抬升齿轮半径
 
-#define LIFT_MAX_DIST 723.4f                                            // 抬升最大距离
+#define LIFT_MAX_DIST 701.4f                                            // 抬升最大距离
 
 #define LIFT_DIST_2_ANGLE (360.0f * REDUCTION_RATIO_LIFT / (2.0f * PI * LIFT_GEAR_R))      // 抬升距离转电机角度(可能待修改) // REDUCTION_RATIO_LIFT 原27.0
 

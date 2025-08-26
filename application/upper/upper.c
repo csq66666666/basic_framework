@@ -44,12 +44,12 @@ attitude_t *Upper_IMU_data;
  */
 #define ActionFinishJudge(step, cmd_time, dirt, step_time)          \
     {                                                               \
-        if (fabsf(upper_yaw1_motor->measure.speed_aps) < 100 &&      \
-            fabsf(upper_yaw2_motor->measure.speed_aps) < 100 &&     \
+        if (fabsf(upper_yaw1_motor->measure.speed_aps) < 500 &&      \
+            fabsf(upper_yaw2_motor->measure.speed_aps) < 500 &&     \
             fabsf(upper_yaw3_motor->measure.velocity) < 100 / RPM_2_RAD_PER_SEC / 100 &&\
-            fabsf(upper_differ_motor_l->measure.speed_aps) < 200 && \
-            fabsf(upper_differ_motor_r->measure.speed_aps) < 200 && \
-            fabsf(upper_lift_motor->measure.speed_aps) < 100   \
+            fabsf(upper_differ_motor_l->measure.speed_aps) < 500 && \
+            fabsf(upper_differ_motor_r->measure.speed_aps) < 500 && \
+            fabsf(upper_lift_motor->measure.speed_aps) < 500   \
             )                                                      \
         {                                                           \
             (cmd_time)++;                                           \
@@ -84,7 +84,7 @@ void UpperInit()
                 .Kd = 0,
                 .Improve = PID_Trapezoid_Intergral | PID_Integral_Limit | PID_Derivative_On_Measurement,
                 .IntegralLimit = 2000,
-                .MaxOut = 25000,
+                .MaxOut = 15000,
             },
             .speed_PID = {
                 .Kp = 1,
@@ -92,7 +92,7 @@ void UpperInit()
                 .Kd = 0,
                 .Improve = PID_Trapezoid_Intergral | PID_Integral_Limit | PID_Derivative_On_Measurement,
                 .IntegralLimit = 2000,
-                .MaxOut = 25000,
+                .MaxOut = 15000,
             },
         },
         .controller_setting_init_config = {
@@ -173,7 +173,7 @@ void UpperInit()
     upper_motor_config.can_init_config.can_handle = &hcan1;
     upper_motor_config.can_init_config.tx_id = 5;
 
-    upper_motor_config.controller_param_init_config.angle_PID.Kp = 100;
+    upper_motor_config.controller_param_init_config.angle_PID.Kp = 10;
     upper_motor_config.controller_param_init_config.angle_PID.Ki = 0;
     upper_motor_config.controller_param_init_config.angle_PID.Kd = 0;
     upper_motor_config.controller_param_init_config.angle_PID.IntegralLimit = 2000;
@@ -288,8 +288,8 @@ static void UpperCaliMode()
     static const float speed_maxout_yaw1_2 = 10000;
     static const float angle_maxout_yaw1_2 = 10000;
 
-    static const float speed_maxout_lift = 25000;
-    static const float angle_maxout_lift = 25000;
+    static const float speed_maxout_lift = 15000;
+    static const float angle_maxout_lift = 15000;
     static float pitch_test_max;
     static float pitch_test_min;
     static uint8_t yaw2_flag = 0;
@@ -347,12 +347,12 @@ static void UpperCaliMode()
         DJIMotorOuterLoop(upper_differ_motor_r, SPEED_LOOP);
         upper_yaw2_motor->motor_controller.speed_PID.MaxOut = 8000;
         upper_yaw1_motor->motor_controller.speed_PID.MaxOut = 8000;
-        upper_differ_motor_l->motor_controller.speed_PID.MaxOut = 2000;
-        upper_differ_motor_r->motor_controller.speed_PID.MaxOut = 2000;
+        upper_differ_motor_l->motor_controller.speed_PID.MaxOut = 3500;
+        upper_differ_motor_r->motor_controller.speed_PID.MaxOut = 3500;
         upper_yaw2_op = -6000;
         upper_yaw1_op = 8000;
-        upper_differ_l_op = 2000;
-        upper_differ_r_op = 2000;
+        upper_differ_l_op = 3500;
+        upper_differ_r_op = 3500;
         action_step ++;
     }
     else if (action_step == 3) // 各电机堵转检测
@@ -555,7 +555,7 @@ static void UpperSliverMiningMode()
         upper_solve.yaw1 = -128.8f;                              
         upper_solve.yaw2 = 26.1f;                                
         upper_solve.yaw3 = 0.0f;                                
-        upper_solve.pitch_differ = -90.0f;                       
+        upper_solve.pitch_differ = -95.0f;                       
         break;
     case 3:
         upper_solve.lift_dist = 55.0f;                       
@@ -622,11 +622,10 @@ static void UpperTwoSliverMiningMode()
         upper_solve.yaw1 = -81.92f;
         upper_solve.yaw2 = -11.59f;
         upper_solve.yaw3 = 0.0f;
-        upper_solve.pitch_differ = -90.0f;
+        upper_solve.pitch_differ = -95.0f;
         break;
     case 3:
         upper_solve.lift_dist = 55.0f;
-        upper_lift_motor->motor_controller.angle_PID.MaxOut = 15000; // 抬升限幅，防止运动太快损伤抬升
         if (upper_cmd_recv.cfm_flag == 1)
         // 第三步 抓取矿石：lift向下、吸住矿石
             upper_solve.lift_dist = 0.0f;
@@ -663,7 +662,6 @@ static void UpperTwoSliverMiningMode()
         break;
     default:
         action_step = 0;
-        upper_lift_motor->motor_controller.angle_PID.MaxOut = 25000; // 抬升取消限幅
         upper_yaw1_motor->motor_controller.angle_PID.MaxOut = 10000; // yaw1取消限幅
         upper_yaw2_motor->motor_controller.angle_PID.MaxOut = 10000; // yaw2取消限幅
         break;
@@ -690,18 +688,17 @@ static void UpperTwoSliverMiningMode()
     }
     else
     {
-        ActionFinishJudge(action_step, cali_time, 0, ACTION_STEP_TIME);
-        if (action_step == 1) // 退出模式后回到默认位置 // 写在这里可以在退出模式时强行覆盖掉原先 step1 的更改
-        {
-            upper_solve.yaw1 = 0.0f;
-            upper_solve.yaw2 = 0.0f;
-            upper_solve.yaw3 = 0.0f;
-            upper_solve.pitch_differ = 0.0f;
-            upper_solve.lift_dist = LIFT_SAFE_HEIGHT;
-            upper_lift_motor->motor_controller.angle_PID.MaxOut = 25000; // 抬升取消限幅
-            upper_yaw1_motor->motor_controller.angle_PID.MaxOut = 10000; // yaw1取消限幅
-            upper_yaw2_motor->motor_controller.angle_PID.MaxOut = 10000; // yaw2取消限幅
-        }
+        action_step = 9;
+        upper_solve.yaw1 = 0.0f;
+        upper_solve.yaw2 = 0.0f;
+        upper_solve.yaw3 = 0.0f;
+        upper_solve.pitch_differ = 0.0f;
+        upper_solve.lift_dist = LIFT_SAFE_HEIGHT;
+        upper_yaw1_motor->motor_controller.angle_PID.MaxOut = 10000; // yaw1取消限幅
+        upper_yaw2_motor->motor_controller.angle_PID.MaxOut = 10000; // yaw2取消限幅
+        ActionFinishJudge(action_step, cali_time, 1, CALI_STEP_TIME);
+        if (action_step == 10)
+            action_step = 0;
     }
 }
 
@@ -725,7 +722,7 @@ static void UpperFetchOreMode1()
         upper_solve.yaw1 = 15.62f;             
         upper_solve.yaw2 = -22.18f;            
         upper_solve.yaw3 = 92.55f;            
-        upper_solve.pitch_differ = 0.0f;    
+        upper_solve.pitch_differ = -10.0f;    
         break;
     case 3:
         UpperSingleMode();                  // 后期考虑将这个函数替换为末端调节器位姿控制模式
@@ -738,7 +735,6 @@ static void UpperFetchOreMode1()
         upper_solve.yaw2 = 0.0f;
         upper_solve.yaw3 = 0.0f;
         upper_solve.pitch_differ = 0.0f;
-        upper_solve.lift_dist = LIFT_SAFE_HEIGHT;
         break;
     default:
         action_step = 0;
@@ -811,7 +807,6 @@ static void UpperFetchOreMode2()
         upper_solve.yaw2 = 0.0f;
         upper_solve.yaw3 = 0.0f;
         upper_solve.pitch_differ = 0.0f;
-        upper_solve.lift_dist = LIFT_SAFE_HEIGHT;
         break;
     default:
         action_step = 0;
@@ -869,6 +864,10 @@ static void UpperStorageOreMode1()
         upper_yaw2_motor->motor_controller.angle_PID.MaxOut = 8000; // yaw2限幅，防止运动太快将矿石甩掉
         break;
     case 2:
+        upper_solve.pitch_differ = -95.0f;
+        upper_solve.roll_differ = -39.73f;
+        break;
+    case 3:
         // if (init_time == 0)
         //     init_time = DWT_GetTimeline_s();
         // deltaT = DWT_GetTimeline_s() - init_time;
@@ -877,21 +876,18 @@ static void UpperStorageOreMode1()
             upper_solve.yaw1 = 21.50f;// upper_solve.yaw1 + RampFunction(39.6f - upper_solve.yaw1, 2, deltaT);            // 第二步：机械臂就位
             upper_solve.yaw2 = 17.29f;            
             upper_solve.yaw3 = 31.97f;    
-            upper_solve.pitch_differ = -90.0f;
-            upper_solve.roll_differ = -126.17f;
         // }
         break;
-    case 3:
-        upper_lift_motor->motor_controller.angle_PID.MaxOut = 15000; // 抬升限幅，防止运动太快损伤抬升
+    case 4:
         upper_solve.roll_differ = upper_cmd_recv.joint_data.roll_differ;    // 松开roll轴自由度允许自由调整至正确位姿
         if (upper_cmd_recv.cfm_flag == 1)
             upper_solve.lift_dist = 327.0f;       // 第三步：机械臂降下将矿石放下
         break;
-    case 4:
+    case 5:
         if (upper_cmd_recv.cfm_flag == 2)
             upper_solve.lift_dist = 550.0f;
         break;
-    case 5:
+    case 6:
         upper_solve.yaw1 = 0.0f;            // 第四步：机械臂归位
         upper_solve.yaw2 = 0.0f;
         upper_solve.yaw3 = 0.0f;
@@ -900,7 +896,6 @@ static void UpperStorageOreMode1()
         break;
     default:
         action_step = 0;
-        upper_lift_motor->motor_controller.angle_PID.MaxOut = 25000; // 抬升取消限幅
         upper_yaw1_motor->motor_controller.angle_PID.MaxOut = 10000; // yaw1取消限幅
         upper_yaw2_motor->motor_controller.angle_PID.MaxOut = 10000; // yaw2取消限幅
         break;
@@ -908,15 +903,15 @@ static void UpperStorageOreMode1()
 
     if (upper_cmd_recv.stop_flag == 0)
     {
-        if ((action_step != 0) && (action_step != 3) && (action_step != 4))
+        if ((action_step != 0) && (action_step != 4) && (action_step != 5))
         {
             ActionFinishJudge(action_step, cali_time, 1, ACTION_STEP_TIME);
         }
-        else if ((action_step == 3) && (upper_cmd_recv.cfm_flag == 1))
+        else if ((action_step == 4) && (upper_cmd_recv.cfm_flag == 1))
         {
             ActionFinishJudge(action_step, cali_time, 1, CALI_STEP_TIME);
         }
-        else if ((action_step == 4) && (upper_cmd_recv.cfm_flag == 2))
+        else if ((action_step == 5) && (upper_cmd_recv.cfm_flag == 2))
         {
             ActionFinishJudge(action_step, cali_time, 1, CALI_STEP_TIME);
         }
@@ -931,7 +926,6 @@ static void UpperStorageOreMode1()
             upper_solve.yaw3 = 0.0f;
             upper_solve.pitch_differ = 0.0f;
             upper_solve.lift_dist = LIFT_SAFE_HEIGHT;
-            upper_lift_motor->motor_controller.angle_PID.MaxOut = 25000; // 抬升取消限幅
             upper_yaw1_motor->motor_controller.angle_PID.MaxOut = 10000; // yaw1取消限幅
             upper_yaw2_motor->motor_controller.angle_PID.MaxOut = 10000; // yaw2取消限幅
         }
@@ -954,23 +948,24 @@ static void UpperStorageOreMode2()
         upper_yaw2_motor->motor_controller.angle_PID.MaxOut = 8000; // yaw2限幅，防止运动太快将矿石甩掉
         break;
     case 2:
-        upper_solve.yaw1 = 71.17f;            // 第二步：机械臂就位
-        upper_solve.yaw2 = 24.72f;            
-        upper_solve.yaw3 = -17.07f;            
-        upper_solve.pitch_differ = -90.0f;    
+        upper_solve.pitch_differ = -95.0f;    
         upper_solve.roll_differ = -109.52f;
         break;
     case 3:
-        upper_lift_motor->motor_controller.angle_PID.MaxOut = 15000; // 抬升限幅，防止运动太快损伤抬升
+        upper_solve.yaw1 = 71.17f;            // 第二步：机械臂就位
+        upper_solve.yaw2 = 24.72f;            
+        upper_solve.yaw3 = -17.07f;            
+        break;
+    case 4:
         upper_solve.roll_differ = upper_cmd_recv.joint_data.roll_differ;    // 松开roll轴自由度允许自由调整至正确位姿
         if (upper_cmd_recv.cfm_flag == 1)
             upper_solve.lift_dist = 327.0f;       // 第三步：机械臂降下将矿石放下
         break;
-    case 4:
+    case 5:
         if (upper_cmd_recv.cfm_flag == 2)
             upper_solve.lift_dist = 550.0f;
         break;
-    case 5:
+    case 6:
         upper_solve.yaw1 = 0.0f;            // 第四步：机械臂归位
         upper_solve.yaw2 = 0.0f;
         upper_solve.yaw3 = 0.0f;
@@ -979,7 +974,6 @@ static void UpperStorageOreMode2()
         break;
     default:
         action_step = 0;
-        upper_lift_motor->motor_controller.angle_PID.MaxOut = 25000; // 抬升取消限幅
         upper_yaw1_motor->motor_controller.angle_PID.MaxOut = 10000; // yaw1取消限幅
         upper_yaw2_motor->motor_controller.angle_PID.MaxOut = 10000; // yaw2取消限幅
         break;
@@ -987,15 +981,15 @@ static void UpperStorageOreMode2()
 
     if (upper_cmd_recv.stop_flag == 0)
     {
-        if ((action_step != 0) && (action_step != 3) && (action_step != 4))
+        if ((action_step != 0) && (action_step != 4) && (action_step != 5))
         {
             ActionFinishJudge(action_step, cali_time, 1, ACTION_STEP_TIME);
         }
-        else if ((action_step == 3) && (upper_cmd_recv.cfm_flag == 1))
+        else if ((action_step == 4) && (upper_cmd_recv.cfm_flag == 1))
         {
             ActionFinishJudge(action_step, cali_time, 1, CALI_STEP_TIME);
         }
-        else if ((action_step == 4) && (upper_cmd_recv.cfm_flag == 2))
+        else if ((action_step == 5) && (upper_cmd_recv.cfm_flag == 2))
         {
             ActionFinishJudge(action_step, cali_time, 1, CALI_STEP_TIME);
         }
@@ -1010,7 +1004,6 @@ static void UpperStorageOreMode2()
             upper_solve.yaw3 = 0.0f;
             upper_solve.pitch_differ = 0.0f;
             upper_solve.lift_dist = LIFT_SAFE_HEIGHT;
-            upper_lift_motor->motor_controller.angle_PID.MaxOut = 25000; // 抬升取消限幅
             upper_yaw1_motor->motor_controller.angle_PID.MaxOut = 10000; // yaw1取消限幅
             upper_yaw2_motor->motor_controller.angle_PID.MaxOut = 10000; // yaw2取消限幅
         }
@@ -1039,7 +1032,7 @@ static void UpperGlodMiningMode()
         upper_solve.pitch_differ = 0.0f;
         break;
     case 3:
-        upper_solve.lift_dist = 137.5f; // 第三步：抬升归位
+        upper_solve.lift_dist = 134.5f; // 第三步：抬升归位
         break;
     default:
         action_step = 0;
@@ -1136,6 +1129,7 @@ static void UpperModeControl()
 
 void UpperTask()
 {
+    // float temp[3] = {0};
     // 获取上层机构控制数据
     SubGetMessage(upper_sub, &upper_cmd_recv);
 
@@ -1154,6 +1148,12 @@ void UpperTask()
 
     // DMMotorCaliEncoder(upper_yaw3_motor);           // 为了使电机的绝对值编码器起作用，不要在初始化时重新校准编码器零点
     // DWT_Delay(0.1);
+
+    // temp[0] = upper_differ_motor_l->measure.speed_aps;
+    // temp[1] = upper_differ_motor_r->measure.speed_aps;
+    // temp[2] = upper_lift_motor->measure.speed_aps;
+
+    // vofa_justfloat_output(temp, 3, &huart1);
 
     // 反馈上层机构数据
     PubPushMessage(upper_pub, (void *)&upper_feedback_data);

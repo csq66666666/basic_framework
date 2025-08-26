@@ -152,6 +152,7 @@ modules/daemon/daemon.c \
 modules/alarm/buzzer.c \
 modules/self_controller/self_controller.c \
 modules/elec_switch/elec_switch.c \
+modules/vofa/vofa.c \
 application/gimbal/gimbal.c \
 application/chassis/chassis.c \
 application/upper/upper.c \
@@ -270,6 +271,7 @@ C_INCLUDES =  \
 -Imodules/alarm \
 -Imodules/self_controller \
 -Imodules/elec_switch \
+-Imodules/vofa \
 -Imodules  \
 -IMiddlewares/ST/ARM/DSP/Inc
 

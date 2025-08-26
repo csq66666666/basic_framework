@@ -97,10 +97,9 @@ void MyUIInit()
     UICharDraw(&UI_State_dyn[4], "sd4", UI_Graph_ADD, 8, UI_Color_Pink, 15, 2, 270, 550, "FIX_ANGLE    ");
     UICharRefresh(&referee_recv_info->referee_id, UI_State_dyn[4]);
 
-    UILineDraw(&car_line[0], "ca0", UI_Graph_ADD, 8, UI_Color_Yellow, 5, 1208, 288, 1588, 0); // 车身线
-    UILineDraw(&car_line[1], "ca1", UI_Graph_ADD, 8, UI_Color_Yellow, 5, 639, 277, 324, 0);
-    UIGraphRefresh(&referee_recv_info->referee_id, 2, car_line[0], car_line[1]);
-}
+    UILineDraw(&car_line[0], "car0", UI_Graph_ADD, 8, UI_Color_Yellow, 4, 801, 278, 599, 0);//车身线
+    UILineDraw(&car_line[1], "car1", UI_Graph_ADD, 8, UI_Color_Yellow, 4, 1149, 277, 1356, 0);
+    UIGraphRefresh(&referee_recv_info->referee_id, 2, car_line[0], car_line[1]);}
 
 // 测试用函数，实现模式自动变化,用于检查该任务和裁判系统是否连接正常
 // static uint8_t count = 0;

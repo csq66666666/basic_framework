@@ -354,9 +354,9 @@ static void MouseKeySet()
     //         //  抬升 //  yaw1 //  yaw2
     if ((rc_data[TEMP].key[KEY_PRESS].shift) && !(rc_data[TEMP].key[KEY_PRESS].ctrl))
     {
-        upper_cmd_send.joint_data.lift_dist += 2.0f * (1.0f * (float)rc_data[TEMP].key[KEY_PRESS_WITH_SHIFT].w - 1.0f * (float)rc_data[TEMP].key[KEY_PRESS_WITH_SHIFT].s);
-        upper_cmd_send.joint_data.yaw1 += 0.5f *(1.0f * (float)rc_data[TEMP].key[KEY_PRESS_WITH_SHIFT].q - 1.0f * (float)rc_data[TEMP].key[KEY_PRESS_WITH_SHIFT].e);
-        upper_cmd_send.joint_data.yaw2 += 0.5f *(1.0f * (float)rc_data[TEMP].key[KEY_PRESS_WITH_SHIFT].a - 1.0f * (float)rc_data[TEMP].key[KEY_PRESS_WITH_SHIFT].d);
+        upper_cmd_send.joint_data.lift_dist += (1.2f * (float)rc_data[TEMP].key[KEY_PRESS_WITH_SHIFT].w - 1.2f * (float)rc_data[TEMP].key[KEY_PRESS_WITH_SHIFT].s);
+        upper_cmd_send.joint_data.yaw1 += (0.5f * (float)rc_data[TEMP].key[KEY_PRESS_WITH_SHIFT].q - 0.5f * (float)rc_data[TEMP].key[KEY_PRESS_WITH_SHIFT].e);
+        upper_cmd_send.joint_data.yaw2 += (0.5f * (float)rc_data[TEMP].key[KEY_PRESS_WITH_SHIFT].a - 0.5f * (float)rc_data[TEMP].key[KEY_PRESS_WITH_SHIFT].d);
     }
 
     //  ctrl + //   W/S  //   A/D  //   Q/E 
@@ -465,6 +465,9 @@ static void MouseKeySet()
             upper_cmd_send.upper_mode = UPPER_GLOD_MINING;
         }
 
+        // ctrl + shift + c 进入校准模式
+        // if (rc_data[TEMP].key[KEY_PRESS].c && rc_data[TEMP].key[KEY_PRESS].shift && rc_data[TEMP].key[KEY_PRESS].ctrl)
+        //     upper_cmd_send.upper_mode = UPPER_CALI;
         // 单击 C 键进入取单银矿，地面矿模式
         if (rc_data[TEMP].key[KEY_PRESS].c)
         {
@@ -662,16 +665,16 @@ static void MouseKeySet()
 
         if (rc_data[TEMP].key[KEY_PRESS_WITH_CTRL].x) // 退出模式
             upper_cmd_send.stop_flag = 1;
-        else if (upper_fetch_data.action_step == 2)
+        else if (upper_fetch_data.action_step == 3)
         {
             CmdRecvUpdate();                        // 在单轴控制前先更新当前位姿
             gimbal_cmd_send.gimbal_mode = GIMBAL_STORAGE_ORE_MODE1;    // 对准矿仓
         }
-        else if (rc_data[TEMP].key[KEY_PRESS].f && upper_fetch_data.action_step == 3) // 再次单击 F 键继续执行
+        else if (rc_data[TEMP].key[KEY_PRESS].f && upper_fetch_data.action_step == 4) // 再次单击 F 键继续执行
         {
             upper_cmd_send.cfm_flag = 1;
         }
-        else if (rc_data[TEMP].key[KEY_PRESS].f && upper_fetch_data.action_step == 4) // 再次单击 F 键继续执行
+        else if (rc_data[TEMP].key[KEY_PRESS].f && upper_fetch_data.action_step == 5) // 再次单击 F 键继续执行
         {
             chassis_cmd_send.Ore_Storage_Flag1 = 1;
             chassis_cmd_send.pump_mode = VALVE_T_ALL_OPEN;
@@ -679,7 +682,7 @@ static void MouseKeySet()
         }
 
         // 该动作执行结束后再将flag置位，防止在多次循环中不能重复进入动作组判断
-        if (upper_fetch_data.action_step != 3 && upper_fetch_data.action_step != 4)
+        if (upper_fetch_data.action_step != 4 && upper_fetch_data.action_step != 5)
             upper_cmd_send.cfm_flag = 0;
 
         // 任务执行结束
@@ -702,16 +705,16 @@ static void MouseKeySet()
 
         if (rc_data[TEMP].key[KEY_PRESS_WITH_CTRL].x) // 退出模式
             upper_cmd_send.stop_flag = 1;
-        else if (upper_fetch_data.action_step == 2)
+        else if (upper_fetch_data.action_step == 3)
         {
             CmdRecvUpdate();                        // 在单轴控制前先更新当前位姿
             gimbal_cmd_send.gimbal_mode = GIMBAL_STORAGE_ORE_MODE2;    // 对准矿仓
         }
-        else if (rc_data[TEMP].key[KEY_PRESS].f && upper_fetch_data.action_step == 3) // 再次单击 F 键继续执行
+        else if (rc_data[TEMP].key[KEY_PRESS].f && upper_fetch_data.action_step == 4) // 再次单击 F 键继续执行
         {
             upper_cmd_send.cfm_flag = 1;
         }
-        else if (rc_data[TEMP].key[KEY_PRESS].f && upper_fetch_data.action_step == 4) // 再次单击 F 键继续执行
+        else if (rc_data[TEMP].key[KEY_PRESS].f && upper_fetch_data.action_step == 5) // 再次单击 F 键继续执行
         {
             chassis_cmd_send.Ore_Storage_Flag2 = 1;
             chassis_cmd_send.pump_mode = VALVE_T2;
@@ -719,7 +722,7 @@ static void MouseKeySet()
         }
 
         // 该动作执行结束后再将flag置位，防止在多次循环中不能重复进入动作组判断
-        if (upper_fetch_data.action_step != 3 && upper_fetch_data.action_step != 4)
+        if (upper_fetch_data.action_step != 4 && upper_fetch_data.action_step != 5)
             upper_cmd_send.cfm_flag = 0;
 
         // 任务执行结束
