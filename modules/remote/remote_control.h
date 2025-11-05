@@ -29,10 +29,15 @@
 #define KEY_PRESS_WITH_SHIFT 2
 
 // 检查接收值是否出错
+#ifndef USE_FS
 #define RC_CH_VALUE_MIN ((uint16_t)364)
 #define RC_CH_VALUE_OFFSET ((uint16_t)1024)
 #define RC_CH_VALUE_MAX ((uint16_t)1684)
-
+#else
+#define RC_CH_VALUE_MIN ((uint16_t)1000)
+#define RC_CH_VALUE_OFFSET ((uint16_t)1500)
+#define RC_CH_VALUE_MAX ((uint16_t)2000)
+#endif // USE_FS
 /* ----------------------- RC Switch Definition----------------------------- */
 #ifdef USE_DT7
 #define RC_SW_UP ((uint16_t)1)   // 开关向上时的值
@@ -45,13 +50,23 @@
 #endif
 /* ----------------------- RC Switch Definition----------------------------- */
 #ifdef USE_VT13
-#define RC_SW_C ((uint16_t)0)   // 开关为C时的值
-#define RC_SW_N ((uint16_t)1)   // 开关为N时的值
-#define RC_SW_S ((uint16_t)2)   // 开关为S时的值
+#define RC_SW_C ((uint16_t)0) // 开关为C时的值
+#define RC_SW_N ((uint16_t)1) // 开关为N时的值
+#define RC_SW_S ((uint16_t)2) // 开关为S时的值
 // 三个判断开关状态的宏
 #define switch_is_C(s) (s == RC_SW_C)
 #define switch_is_N(s) (s == RC_SW_N)
 #define switch_is_S(s) (s == RC_SW_S)
+#endif
+/* ----------------------- RC Switch Definition----------------------------- */
+#ifdef USE_FS
+#define RC_SW_UP ((uint16_t)1000)   // 开关向上时的值
+#define RC_SW_MID ((uint16_t)1500)  // 开关中间时的值
+#define RC_SW_DOWN ((uint16_t)2000) // 开关向下时的值
+// 三个判断开关状态的宏
+#define switch_is_down(s) (s == RC_SW_DOWN)
+#define switch_is_mid(s) (s == RC_SW_MID)
+#define switch_is_up(s) (s == RC_SW_UP)
 #endif
 /* ----------------------- PC Key Definition-------------------------------- */
 // 对应key[x][0~16],获取对应的键;例如通过key[KEY_PRESS][Key_W]获取W键是否按下,后续改为位域后删除
@@ -124,7 +139,7 @@ typedef struct
 
     uint8_t key_count[3][16];
 } RC_ctrl_t;
-#endif
+#endif // USE_DT7
 
 #ifdef USE_VT13
 // @todo 当前结构体嵌套过深,需要进行优化
@@ -132,40 +147,61 @@ typedef struct
 {
     struct
     {
-        int16_t rocker_l_;  // 左水平
-        int16_t rocker_l1;  // 左竖直
-        int16_t rocker_r_;  // 右水平
-        int16_t rocker_r1;  // 右竖直
-        int16_t dial;       // 侧边拨轮
+        int16_t rocker_l_; // 左水平
+        int16_t rocker_l1; // 左竖直
+        int16_t rocker_r_; // 右水平
+        int16_t rocker_r1; // 右竖直
+        int16_t dial;      // 侧边拨轮
 
-        uint8_t switch_mid;     // 中间开关
+        uint8_t switch_mid; // 中间开关
 
-        uint8_t Stop_button;        // 暂停按钮
-        uint8_t Custom_button_left; // 自定义按键左
-        uint8_t Custom_button_right;// 自定义按键右
-        uint8_t trigger_button;     // 扳机键
+        uint8_t Stop_button;         // 暂停按钮
+        uint8_t Custom_button_left;  // 自定义按键左
+        uint8_t Custom_button_right; // 自定义按键右
+        uint8_t trigger_button;      // 扳机键
 
-        uint8_t Stop_button_count;          // 暂停按钮计数
-        uint8_t Custom_button_left_count;   // 自定义按键左计数
-        uint8_t Custom_button_right_count;  // 自定义按键右计数
-        uint8_t trigger_button_count;       // 扳机键计数
+        uint8_t Stop_button_count;         // 暂停按钮计数
+        uint8_t Custom_button_left_count;  // 自定义按键左计数
+        uint8_t Custom_button_right_count; // 自定义按键右计数
+        uint8_t trigger_button_count;      // 扳机键计数
     } rc;
     struct
     {
         int16_t x;
         int16_t y;
-        int16_t z;          // 鼠标滚轮的速度
+        int16_t z; // 鼠标滚轮的速度
         uint8_t press_l;
         uint8_t press_r;
-        uint8_t press_m;    // 鼠标中键
+        uint8_t press_m; // 鼠标中键
     } mouse;
 
     Key_t key[3]; // 改为位域后的键盘索引,空间减少8倍,速度增加16~倍
-    
+
     uint8_t key_count[3][16];
 } RC_ctrl_t;
-#endif
+#endif // USE_VT13
 
+#ifdef USE_FS
+// @todo 当前结构体嵌套过深,需要进行优化
+typedef struct
+{
+    struct
+    {
+        int16_t rocker_l_; // 左水平
+        int16_t rocker_l1; // 左竖直
+        int16_t rocker_r_; // 右水平
+        int16_t rocker_r1; // 右竖直
+
+        uint16_t switch_a; // 开关A
+        uint16_t switch_b; // 开关B
+        uint16_t switch_c; // 开关C
+        uint16_t switch_d; // 开关D
+
+        int16_t knob_A; // 旋钮A
+        int16_t knob_B; // 旋钮B
+    } rc;
+} RC_ctrl_t;
+#endif // USE_FS
 /* ------------------------- Internal Data ----------------------------------- */
 
 /**

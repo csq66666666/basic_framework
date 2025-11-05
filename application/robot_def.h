@@ -23,7 +23,8 @@
 #define GIMBAL_BOARD  // 云台板
 
 // #define USE_DT7     // 使用DT7遥控器进行控制
-#define USE_VT13    // 使用VT13(图传接收端)遥控器进行控制
+// #define USE_VT13    // 使用VT13(图传接收端)遥控器进行控制
+#define USE_FS      // 使用富斯IBUS协议进行控制 // 注意添加反相器！！！！！
 
 #define VISION_USE_VCP // 使用虚拟串口发送视觉数据
 // #define VISION_USE_UART // 使用串口发送视觉数据

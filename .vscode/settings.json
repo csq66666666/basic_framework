@@ -25,6 +25,7 @@
         "stdint.h": "c",
         "bsp_dwt.h": "c",
         "referee_ui.h": "c",
-        "bsp_usart.h": "c"
+        "bsp_usart.h": "c",
+        "master_process.h": "c"
     }
 }

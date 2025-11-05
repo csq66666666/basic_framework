@@ -18,6 +18,10 @@
 #define REMOTE_CONTROL_FRAME_SIZE 21u // 遥控器接收的buffer大小
 #endif
 
+#ifdef USE_FS
+#define REMOTE_CONTROL_FRAME_SIZE 32u // 遥控器接收的buffer大小
+#endif
+
 static uint32_t cnt;
 static double bias_time;
 
@@ -36,7 +40,7 @@ static DaemonInstance *rc_daemon_instance;
 static void RectifyRCjoystick()
 {
     for (uint8_t i = 0; i < 5; ++i)
-        if (abs(*(&rc_ctrl[TEMP].rc.rocker_l_ + i)) > 660)
+        if (abs(*(&rc_ctrl[TEMP].rc.rocker_l_ + i)) > RC_CH_VALUE_MAX - RC_CH_VALUE_OFFSET)
             *(&rc_ctrl[TEMP].rc.rocker_l_ + i) = 0;
 }
 
@@ -192,6 +196,38 @@ static void sbus_to_rc(uint8_t *sbus_buf)
     }
 }
 #endif // USE_VT13
+
+#ifdef USE_FS
+/**
+ * @brief 富斯遥控器数据解析
+ *
+ * @param sbus_buf 接收buffer
+ */
+static void sbus_to_rc(uint8_t *sbus_buf)
+{
+    uint16_t Check = 0xFFFF;
+    for(int i = 0;i < 30;i ++)
+        Check -= sbus_buf[i];
+    if ((sbus_buf[0] == 0x20 && sbus_buf[1] == 0x40) && (Check == sbus_buf[31] << 8 | sbus_buf[30]))   // 判断包头包尾
+    {
+        memcpy(&rc_ctrl[LAST], &rc_ctrl[TEMP], sizeof(RC_ctrl_t)); // 保存上一次的数据,用于按键持续按下和切换的判断
+        // 摇杆,直接解算时减去偏置
+        rc_ctrl[TEMP].rc.rocker_r_ = (sbus_buf[2] | (sbus_buf[3] << 8)) - RC_CH_VALUE_OFFSET;   //!< Channel 0
+        rc_ctrl[TEMP].rc.rocker_r1 = (sbus_buf[4] | (sbus_buf[5] << 8)) - RC_CH_VALUE_OFFSET;   //!< Channel 1
+        rc_ctrl[TEMP].rc.rocker_l1 = (sbus_buf[6] | (sbus_buf[7] << 8)) - RC_CH_VALUE_OFFSET;   //!< Channel 2
+        rc_ctrl[TEMP].rc.rocker_l_ = (sbus_buf[8] | (sbus_buf[9] << 8)) - RC_CH_VALUE_OFFSET;   //!< Channel 3
+        RectifyRCjoystick();
+
+        rc_ctrl[TEMP].rc.switch_a = sbus_buf[10] | (sbus_buf[11] << 8);   //!< Switch A
+        rc_ctrl[TEMP].rc.switch_b = sbus_buf[12] | (sbus_buf[13] << 8);   //!< Switch B
+        rc_ctrl[TEMP].rc.switch_c = sbus_buf[14] | (sbus_buf[15] << 8);   //!< Switch C
+        rc_ctrl[TEMP].rc.switch_d = sbus_buf[16] | (sbus_buf[17] << 8);   //!< Switch D
+
+        rc_ctrl[TEMP].rc.knob_A = sbus_buf[18] | (sbus_buf[19] << 8) - RC_CH_VALUE_OFFSET;      //!< Knob A
+        rc_ctrl[TEMP].rc.knob_B = sbus_buf[20] | (sbus_buf[21] << 8) - RC_CH_VALUE_OFFSET;      //!< Knob B
+    }
+}
+#endif // USE_FS
 
 /**
  * @brief 对sbus_to_rc的简单封装,用于注册到bsp_usart的回调函数中

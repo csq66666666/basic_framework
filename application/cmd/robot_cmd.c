@@ -64,7 +64,7 @@ BMI088Instance *bmi088_test; // 云台IMU
 BMI088_Data_t bmi088_data;
 void RobotCMDInit()
 {
-#ifdef USE_DT7
+#if defined(USE_DT7) || defined(USE_FS)
     rc_data = RemoteControlInit(&huart3); // 修改为对应串口,注意如果是自研板dbus协议串口需选用添加了反相器的那个
 #endif
 #ifdef USE_VT13
@@ -72,7 +72,7 @@ void RobotCMDInit()
 #endif
 
     self_ctrl_data = SelfCntlrInit(&huart6);
-    
+
     // vision_recv_data = VisionInit(&huart1); // 视觉通信串口
 
     gimbal_cmd_pub = PubRegister("gimbal_cmd", sizeof(Gimbal_Ctrl_Cmd_s));
@@ -110,7 +110,7 @@ void RobotCMDInit()
 /**
  * @brief 将当前位姿更新到发送端，使后续操作在当前位姿上执行
  * @note 注意这个函数不能被一直调用，否则会与键鼠/遥控器的控制冲突
- * 
+ *
  */
 static void CmdRecvUpdate()
 {
@@ -158,8 +158,8 @@ static void RemoteControlSet()
             {
                 chassis_cmd_send.chassis_mode = CHASSIS_NORMAL;
             }
-            chassis_cmd_send.vx = 40.0f * (float)rc_data[TEMP].rc.rocker_r_; // _水平方向
-            chassis_cmd_send.vy = 40.0f * (float)rc_data[TEMP].rc.rocker_r1; // |竖直方向
+            chassis_cmd_send.vx = 40.0f * (float)rc_data[TEMP].rc.rocker_r_;  // _水平方向
+            chassis_cmd_send.vy = 40.0f * (float)rc_data[TEMP].rc.rocker_r1;  // |竖直方向
             chassis_cmd_send.wz = -0.27f * (float)rc_data[TEMP].rc.rocker_l_; // ↺旋转方向 遥控器摇杆从左往右值增大,与旋转方向相反，所以取相反数
         }
         else if (switch_is_mid(rc_data[TEMP].rc.switch_left)) // 左侧开关状态为[中]
@@ -168,13 +168,13 @@ static void RemoteControlSet()
             gimbal_cmd_send.gimbal_mode = GIMBAL_FIX_ANGLE_MODE;
 
             if (switch_is_up(rc_data[TEMP].rc.switch_right)) // 右侧开关状态[上] ，抬升+yaw1+yaw2
-            {   // yaw1,yaw2有传动齿轮，方向相反
+            {                                                // yaw1,yaw2有传动齿轮，方向相反
                 upper_cmd_send.joint_data.yaw1 -= 0.001f * (float)rc_data[TEMP].rc.rocker_l_;
                 upper_cmd_send.joint_data.lift_dist += 0.002f * (float)rc_data[TEMP].rc.rocker_l1;
                 upper_cmd_send.joint_data.yaw2 -= 0.001f * (float)rc_data[TEMP].rc.rocker_r_;
             }
             else if (switch_is_mid(rc_data[TEMP].rc.switch_right)) // 右侧开关状态[中] ，yaw3+差速器
-            {   // yaw3有传动齿轮，方向相反
+            {                                                      // yaw3有传动齿轮，方向相反
                 upper_cmd_send.joint_data.yaw3 -= 0.001f * (float)rc_data[TEMP].rc.rocker_l_;
                 upper_cmd_send.joint_data.roll_differ += 0.001f * (float)rc_data[TEMP].rc.rocker_r_; // 待改动
                 upper_cmd_send.joint_data.pitch_differ += 0.001f * (float)rc_data[TEMP].rc.rocker_r1;
@@ -191,7 +191,7 @@ static void RemoteControlSet()
                 upper_cmd_send.ctrl_data.yaw2 = self_ctrl_data->yaw2;
                 upper_cmd_send.ctrl_data.yaw3 = self_ctrl_data->yaw3;
                 upper_cmd_send.ctrl_data.pitch = self_ctrl_data->pitch;
-                upper_cmd_send.ctrl_data.roll = self_ctrl_data->roll;                
+                upper_cmd_send.ctrl_data.roll = self_ctrl_data->roll;
             }
         }
         // 真空泵控制,拨轮向上打为负,向下为正
@@ -255,8 +255,8 @@ static void RemoteControlSet()
             {
                 chassis_cmd_send.chassis_mode = CHASSIS_NORMAL;
             }
-            chassis_cmd_send.vx = 50.0f * (float)rc_data[TEMP].rc.rocker_r_; // _水平方向
-            chassis_cmd_send.vy = 50.0f * (float)rc_data[TEMP].rc.rocker_r1; // |竖直方向
+            chassis_cmd_send.vx = 50.0f * (float)rc_data[TEMP].rc.rocker_r_;  // _水平方向
+            chassis_cmd_send.vy = 50.0f * (float)rc_data[TEMP].rc.rocker_r1;  // |竖直方向
             chassis_cmd_send.wz = -0.27f * (float)rc_data[TEMP].rc.rocker_l_; // ↺旋转方向 遥控器摇杆从左往右值增大,与旋转方向相反，所以取相反数
         }
         else if (rc_data[TEMP].rc.Stop_button_count % 2 == 1) // 模式切换按键按下奇数次
@@ -265,13 +265,13 @@ static void RemoteControlSet()
             gimbal_cmd_send.gimbal_mode = GIMBAL_FIX_ANGLE_MODE;
 
             if (switch_is_S(rc_data[TEMP].rc.switch_mid)) // 中置开关状态[S] ，抬升+yaw1+yaw2
-            {   // yaw1,yaw2有传动齿轮，方向相反
+            {                                             // yaw1,yaw2有传动齿轮，方向相反
                 upper_cmd_send.joint_data.yaw1 -= 0.001f * (float)rc_data[TEMP].rc.rocker_l_;
                 upper_cmd_send.joint_data.lift_dist += 0.002f * (float)rc_data[TEMP].rc.rocker_l1;
                 upper_cmd_send.joint_data.yaw2 -= 0.001f * (float)rc_data[TEMP].rc.rocker_r_;
             }
             else if (switch_is_N(rc_data[TEMP].rc.switch_mid)) // 中置开关状态[N] ，yaw3+差速器
-            {   // yaw3有传动齿轮，方向相反
+            {                                                  // yaw3有传动齿轮，方向相反
                 upper_cmd_send.joint_data.yaw3 -= 0.001f * (float)rc_data[TEMP].rc.rocker_l_;
                 upper_cmd_send.joint_data.roll_differ += 0.001f * (float)rc_data[TEMP].rc.rocker_r_; // 待改动
                 upper_cmd_send.joint_data.pitch_differ += 0.001f * (float)rc_data[TEMP].rc.rocker_r1;
@@ -286,7 +286,7 @@ static void RemoteControlSet()
             upper_cmd_send.ctrl_data.yaw2 = self_ctrl_data->yaw2;
             upper_cmd_send.ctrl_data.yaw3 = self_ctrl_data->yaw3;
             upper_cmd_send.ctrl_data.pitch = self_ctrl_data->pitch;
-            upper_cmd_send.ctrl_data.roll = self_ctrl_data->roll;                
+            upper_cmd_send.ctrl_data.roll = self_ctrl_data->roll;
         }
         // 真空泵控制,拨轮向上打为负,向下为正
         if (rc_data[TEMP].rc.dial < -100) // 向上打开/关闭真空泵
@@ -314,12 +314,92 @@ static void RemoteControlSet()
 }
 #endif // USE_VT13
 
+#ifdef USE_FS
+/**
+ * @brief 控制输入为富斯遥控器(调试时)的模式和控制量设置
+ *
+ */
+static void RemoteControlSet()
+{
+    static uint8_t test_flag = 1;
+    if (upper_cmd_send.upper_mode != UPPER_CALI)
+    {
+        if (switch_is_mid(rc_data[TEMP].rc.switch_c)) // C 拨杆中置，遥控模式
+        {
+            if (switch_is_up(rc_data[TEMP].rc.switch_a)) // A 拨杆上拨，底盘模式
+            {
+                // 控制底盘运行模式
+                if (switch_is_up(rc_data[TEMP].rc.switch_b)) // B 拨杆上拨,底盘正常行进
+                {
+                    chassis_cmd_send.chassis_mode = CHASSIS_NORMAL;
+                }
+                chassis_cmd_send.vx = 66.0f * (float)rc_data[TEMP].rc.rocker_r_; // _水平方向
+                chassis_cmd_send.vy = 66.0f * (float)rc_data[TEMP].rc.rocker_r1; // |竖直方向
+                chassis_cmd_send.wz = -0.4f * (float)rc_data[TEMP].rc.rocker_l_; // ↺旋转方向 遥控器摇杆从左往右值增大,与旋转方向相反，所以取相反数
+            }
+            else if (switch_is_down(rc_data[TEMP].rc.switch_a)) // A 拨杆下拨，机械臂模式
+            {
+                upper_cmd_send.upper_mode = UPPER_SINGLE_MOTOR;
+                gimbal_cmd_send.gimbal_mode = GIMBAL_FIX_ANGLE_MODE;
+
+                if (switch_is_up(rc_data[TEMP].rc.switch_b)) // B 拨杆上拨 ，抬升+yaw1+yaw2
+                {                                            // yaw1,yaw2有传动齿轮，方向相反
+                    upper_cmd_send.joint_data.yaw1 -= 0.001f * (float)rc_data[TEMP].rc.rocker_l_;
+                    upper_cmd_send.joint_data.lift_dist += 0.002f * (float)rc_data[TEMP].rc.rocker_l1;
+                    upper_cmd_send.joint_data.yaw2 -= 0.001f * (float)rc_data[TEMP].rc.rocker_r_;
+                }
+                else if (switch_is_down(rc_data[TEMP].rc.switch_b)) // B 拨杆下拨 ，yaw3+差速器
+                {                                                   // yaw3有传动齿轮，方向相反
+                    upper_cmd_send.joint_data.yaw3 -= 0.001f * (float)rc_data[TEMP].rc.rocker_l_;
+                    upper_cmd_send.joint_data.roll_differ += 0.001f * (float)rc_data[TEMP].rc.rocker_r_; // 待改动
+                    upper_cmd_send.joint_data.pitch_differ += 0.001f * (float)rc_data[TEMP].rc.rocker_r1;
+                }
+            }
+        }
+        if (switch_is_up(rc_data[TEMP].rc.switch_c)) // C 拨杆上拨,自定义控制器模式
+        {
+            upper_cmd_send.upper_mode = UPPER_EXCHANGE;
+
+            upper_cmd_send.ctrl_data.lift_dist = upper_cmd_send.joint_data.lift_dist;
+            upper_cmd_send.ctrl_data.yaw1 = self_ctrl_data->yaw1;
+            upper_cmd_send.ctrl_data.yaw2 = self_ctrl_data->yaw2;
+            upper_cmd_send.ctrl_data.yaw3 = self_ctrl_data->yaw3;
+            upper_cmd_send.ctrl_data.pitch = self_ctrl_data->pitch;
+            upper_cmd_send.ctrl_data.roll = self_ctrl_data->roll;
+        }
+        if ((fabsf(rc_data[TEMP].rc.knob_A - rc_data[LAST].rc.knob_A) > 50) && (rc_data[LAST].rc.knob_A != 0)) // 扭动旋钮 A 进入校准模式
+        {
+            upper_cmd_send.upper_mode = UPPER_CALI;
+        }
+        // 真空泵控制
+        if (switch_is_down(rc_data[TEMP].rc.switch_d)) // D 拨杆上拨打开真空泵
+        {
+            chassis_cmd_send.pump_mode = VALVE_ALL_OPEN;
+        }
+        else if (switch_is_up(rc_data[TEMP].rc.switch_d)) // D 拨杆上拨关闭真空泵
+        {
+            chassis_cmd_send.pump_mode = VALVE_ALL_CLOSE;
+        }
+        // 进入校准模式
+    }
+    else
+    {
+        if (upper_fetch_data.action_step == 0)
+        {
+            upper_cmd_send.upper_mode = UPPER_NO_MOVE;
+            CmdRecvUpdate();
+        }
+    }
+}
+#endif // USE_FS
+
 /**
  * @brief 输入为键鼠时模式和控制量设置
  *
  */
 static void MouseKeySet()
 {
+#ifndef USE_FS // 富斯遥控器没有键鼠功能
     /***********************************************   此处为基本动作控制   ***********************************************/
     if (!(rc_data[TEMP].key[KEY_PRESS].shift) && !(rc_data[TEMP].key[KEY_PRESS].ctrl))
     //  W/S  //  A/D  //  Q/E  //
@@ -329,13 +409,13 @@ static void MouseKeySet()
         {
             chassis_cmd_send.vx = 20000.0f * ((float)rc_data[TEMP].key[KEY_PRESS].a - (float)rc_data[TEMP].key[KEY_PRESS].d); // _水平方向
             chassis_cmd_send.vy = 20000.0f * ((float)rc_data[TEMP].key[KEY_PRESS].w - (float)rc_data[TEMP].key[KEY_PRESS].s); // |竖直方向
-            chassis_cmd_send.wz = 178.2f * ((float)rc_data[TEMP].key[KEY_PRESS].q - (float)rc_data[TEMP].key[KEY_PRESS].e); // ↺自旋
+            chassis_cmd_send.wz = 178.2f * ((float)rc_data[TEMP].key[KEY_PRESS].q - (float)rc_data[TEMP].key[KEY_PRESS].e);   // ↺自旋
         }
         else if (chassis_cmd_send.chassis_mode == CHASSIS_MINING)
         {
             chassis_cmd_send.vx = 5000.0f * ((float)rc_data[TEMP].key[KEY_PRESS].a - (float)rc_data[TEMP].key[KEY_PRESS].d); // _水平方向
             chassis_cmd_send.vy = 5000.0f * ((float)rc_data[TEMP].key[KEY_PRESS].w - (float)rc_data[TEMP].key[KEY_PRESS].s); // |竖直方向
-            chassis_cmd_send.wz = 45.0f * ((float)rc_data[TEMP].key[KEY_PRESS].q - (float)rc_data[TEMP].key[KEY_PRESS].e); // ↺自旋
+            chassis_cmd_send.wz = 45.0f * ((float)rc_data[TEMP].key[KEY_PRESS].q - (float)rc_data[TEMP].key[KEY_PRESS].e);   // ↺自旋
         }
     }
     else
@@ -350,7 +430,7 @@ static void MouseKeySet()
     else if (rc_data[TEMP].key[KEY_PRESS].z)
         chassis_cmd_send.chassis_mode = CHASSIS_NORMAL;
     // 机械臂键鼠控制
-    // shift + //  W/S  //  Q/E  //  A/D 
+    // shift + //  W/S  //  Q/E  //  A/D
     //         //  抬升 //  yaw1 //  yaw2
     if ((rc_data[TEMP].key[KEY_PRESS].shift) && !(rc_data[TEMP].key[KEY_PRESS].ctrl))
     {
@@ -359,8 +439,8 @@ static void MouseKeySet()
         upper_cmd_send.joint_data.yaw2 += (0.5f * (float)rc_data[TEMP].key[KEY_PRESS_WITH_SHIFT].a - 0.5f * (float)rc_data[TEMP].key[KEY_PRESS_WITH_SHIFT].d);
     }
 
-    //  ctrl + //   W/S  //   A/D  //   Q/E 
-    //           小pitch //  yaw3  //   roll 
+    //  ctrl + //   W/S  //   A/D  //   Q/E
+    //           小pitch //  yaw3  //   roll
     if ((!rc_data[TEMP].key[KEY_PRESS].shift) && (rc_data[TEMP].key[KEY_PRESS].ctrl))
     {
         upper_cmd_send.joint_data.roll_differ += (0.25f * (float)rc_data[TEMP].key[KEY_PRESS_WITH_CTRL].e - 0.25f * (float)rc_data[TEMP].key[KEY_PRESS_WITH_CTRL].q);
@@ -399,7 +479,7 @@ static void MouseKeySet()
     gimbal_cmd_send.yaw_add_angle = -0.006f * rc_data[TEMP].mouse.x;
     gimbal_cmd_send.pitch_add_angle = -0.006f * rc_data[TEMP].mouse.y;
     if (rc_data->mouse.press_r)
-        gimbal_cmd_send.gimbal_mode = GIMBAL_RESET;         // 图传复位
+        gimbal_cmd_send.gimbal_mode = GIMBAL_RESET; // 图传复位
 
     // ctrl + shift + r 刷新UI
     if (rc_data[TEMP].key[KEY_PRESS].r && rc_data[TEMP].key[KEY_PRESS].ctrl && rc_data[TEMP].key[KEY_PRESS].shift)
@@ -411,7 +491,7 @@ static void MouseKeySet()
     // 单击 R 键打开真空泵
     else if (rc_data[TEMP].key[KEY_PRESS].r)
         chassis_cmd_send.pump_mode |= VALVE_ALL_OPEN;
-    else 
+    else
         chassis_cmd_send.UI_Init_Flag = 0;
 
     /**************************************************   此处为动作组   **************************************************/
@@ -495,7 +575,7 @@ static void MouseKeySet()
             upper_cmd_send.stop_flag = 1;
         else if (upper_fetch_data.action_step == 2)
         {
-            gimbal_cmd_send.gimbal_mode = GIMBAL_SLIVER_MINGING_MODE;   // 图传对准银矿
+            gimbal_cmd_send.gimbal_mode = GIMBAL_SLIVER_MINGING_MODE; // 图传对准银矿
         }
         else if (rc_data[TEMP].key[KEY_PRESS].c && upper_fetch_data.action_step == 3) // 再次单击 F 键继续执行
         {
@@ -512,7 +592,7 @@ static void MouseKeySet()
             upper_cmd_send.stop_flag = 0;
             upper_cmd_send.upper_mode = UPPER_NO_MOVE;
             // chassis_cmd_send.chassis_mode = CHASSIS_NORMAL;  // 在存放矿石后再修改底盘模式，用于微调车身状态
-            gimbal_cmd_send.gimbal_mode = GIMBAL_FIX_ANGLE_MODE;    // 图传置位
+            gimbal_cmd_send.gimbal_mode = GIMBAL_FIX_ANGLE_MODE; // 图传置位
             CmdRecvUpdate();
         }
     }
@@ -527,7 +607,7 @@ static void MouseKeySet()
             upper_cmd_send.stop_flag = 1;
         else if (upper_fetch_data.action_step == 2) // 先对准银矿
         {
-            gimbal_cmd_send.gimbal_mode = GIMBAL_TWO_SLIVER_MINGING_MODE1;       // 调整图传以对准银矿
+            gimbal_cmd_send.gimbal_mode = GIMBAL_TWO_SLIVER_MINGING_MODE1; // 调整图传以对准银矿
         }
         else if (rc_data[TEMP].key[KEY_PRESS].f && upper_fetch_data.action_step == 3) // 再次单击 F 键继续执行
         {
@@ -536,7 +616,7 @@ static void MouseKeySet()
         }
         else if (upper_fetch_data.action_step == 5) // 先对准矿仓
         {
-            gimbal_cmd_send.gimbal_mode = GIMBAL_TWO_SLIVER_MINGING_MODE2;        // 调整图传以查看矿仓状态
+            gimbal_cmd_send.gimbal_mode = GIMBAL_TWO_SLIVER_MINGING_MODE2; // 调整图传以查看矿仓状态
         }
         else if (rc_data[TEMP].key[KEY_PRESS].f && upper_fetch_data.action_step == 6) // 再次单击 F 键继续执行
         {
@@ -544,8 +624,8 @@ static void MouseKeySet()
         }
         else if (rc_data[TEMP].key[KEY_PRESS].f && upper_fetch_data.action_step == 7) // 再次单击 F 键继续执行
         {
-            chassis_cmd_send.pump_mode = VALVE_T_ALL_OPEN; // 先关闭臂上气路再抬起
-            gimbal_cmd_send.gimbal_mode = GIMBAL_FIX_ANGLE_MODE;        // 图传回正
+            chassis_cmd_send.pump_mode = VALVE_T_ALL_OPEN;       // 先关闭臂上气路再抬起
+            gimbal_cmd_send.gimbal_mode = GIMBAL_FIX_ANGLE_MODE; // 图传回正
             chassis_cmd_send.Ore_Storage_Flag1 = 1;
             chassis_cmd_send.Ore_Storage_Flag2 = 1;
             upper_cmd_send.cfm_flag = 3;
@@ -561,7 +641,7 @@ static void MouseKeySet()
             chassis_cmd_send.chassis_mode = CHASSIS_NORMAL;
             upper_cmd_send.stop_flag = 0;
             upper_cmd_send.upper_mode = UPPER_NO_MOVE;
-            gimbal_cmd_send.gimbal_mode = GIMBAL_FIX_ANGLE_MODE;    // 图传置位
+            gimbal_cmd_send.gimbal_mode = GIMBAL_FIX_ANGLE_MODE; // 图传置位
             CmdRecvUpdate();
         }
     }
@@ -577,8 +657,8 @@ static void MouseKeySet()
             upper_cmd_send.stop_flag = 1;
         else if (upper_fetch_data.action_step == 2)
         {
-            CmdRecvUpdate();                        // 在单轴控制前先更新当前位姿
-            gimbal_cmd_send.gimbal_mode = GIMBAL_FETCH_ORE_MODE1;   // 对准矿仓
+            CmdRecvUpdate();                                      // 在单轴控制前先更新当前位姿
+            gimbal_cmd_send.gimbal_mode = GIMBAL_FETCH_ORE_MODE1; // 对准矿仓
         }
         else if (rc_data[TEMP].key[KEY_PRESS].f && upper_fetch_data.action_step == 3) // 调整完毕位置后，再次单击 F 键继续执行
         {
@@ -593,7 +673,7 @@ static void MouseKeySet()
         }
         else if (upper_fetch_data.action_step == 5)
         {
-            gimbal_cmd_send.gimbal_mode = GIMBAL_FIX_ANGLE_MODE;    // 图传置位
+            gimbal_cmd_send.gimbal_mode = GIMBAL_FIX_ANGLE_MODE; // 图传置位
         }
 
         // 该动作执行结束后再将flag置位，防止在多次循环中不能重复进入动作组判断
@@ -606,7 +686,7 @@ static void MouseKeySet()
             chassis_cmd_send.chassis_mode = CHASSIS_NORMAL;
             upper_cmd_send.stop_flag = 0;
             upper_cmd_send.upper_mode = UPPER_NO_MOVE;
-            gimbal_cmd_send.gimbal_mode = GIMBAL_FIX_ANGLE_MODE;    // 图传置位
+            gimbal_cmd_send.gimbal_mode = GIMBAL_FIX_ANGLE_MODE; // 图传置位
             CmdRecvUpdate();
         }
     }
@@ -622,8 +702,8 @@ static void MouseKeySet()
             upper_cmd_send.stop_flag = 1;
         else if (upper_fetch_data.action_step == 2)
         {
-            CmdRecvUpdate();                        // 在单轴控制前先更新当前位姿
-            gimbal_cmd_send.gimbal_mode = GIMBAL_FETCH_ORE_MODE2;    // 对准矿仓
+            CmdRecvUpdate();                                      // 在单轴控制前先更新当前位姿
+            gimbal_cmd_send.gimbal_mode = GIMBAL_FETCH_ORE_MODE2; // 对准矿仓
         }
         else if (rc_data[TEMP].key[KEY_PRESS].f && upper_fetch_data.action_step == 3) // 调整完毕位置后，再次单击 F 键继续执行
         {
@@ -638,7 +718,7 @@ static void MouseKeySet()
         }
         else if (upper_fetch_data.action_step == 5)
         {
-            gimbal_cmd_send.gimbal_mode = GIMBAL_FIX_ANGLE_MODE;    // 图传置位
+            gimbal_cmd_send.gimbal_mode = GIMBAL_FIX_ANGLE_MODE; // 图传置位
         }
 
         // 该动作执行结束后再将flag置位，防止在多次循环中不能重复进入动作组判断
@@ -651,7 +731,7 @@ static void MouseKeySet()
             chassis_cmd_send.chassis_mode = CHASSIS_NORMAL;
             upper_cmd_send.stop_flag = 0;
             upper_cmd_send.upper_mode = UPPER_NO_MOVE;
-            gimbal_cmd_send.gimbal_mode = GIMBAL_FIX_ANGLE_MODE;    // 图传置位
+            gimbal_cmd_send.gimbal_mode = GIMBAL_FIX_ANGLE_MODE; // 图传置位
             CmdRecvUpdate();
         }
     }
@@ -667,8 +747,8 @@ static void MouseKeySet()
             upper_cmd_send.stop_flag = 1;
         else if (upper_fetch_data.action_step == 3)
         {
-            CmdRecvUpdate();                        // 在单轴控制前先更新当前位姿
-            gimbal_cmd_send.gimbal_mode = GIMBAL_STORAGE_ORE_MODE1;    // 对准矿仓
+            CmdRecvUpdate();                                        // 在单轴控制前先更新当前位姿
+            gimbal_cmd_send.gimbal_mode = GIMBAL_STORAGE_ORE_MODE1; // 对准矿仓
         }
         else if (rc_data[TEMP].key[KEY_PRESS].f && upper_fetch_data.action_step == 4) // 再次单击 F 键继续执行
         {
@@ -691,7 +771,7 @@ static void MouseKeySet()
             chassis_cmd_send.chassis_mode = CHASSIS_NORMAL;
             upper_cmd_send.stop_flag = 0;
             upper_cmd_send.upper_mode = UPPER_NO_MOVE;
-            gimbal_cmd_send.gimbal_mode = GIMBAL_FIX_ANGLE_MODE;    // 图传置位
+            gimbal_cmd_send.gimbal_mode = GIMBAL_FIX_ANGLE_MODE; // 图传置位
             CmdRecvUpdate();
         }
     }
@@ -707,8 +787,8 @@ static void MouseKeySet()
             upper_cmd_send.stop_flag = 1;
         else if (upper_fetch_data.action_step == 3)
         {
-            CmdRecvUpdate();                        // 在单轴控制前先更新当前位姿
-            gimbal_cmd_send.gimbal_mode = GIMBAL_STORAGE_ORE_MODE2;    // 对准矿仓
+            CmdRecvUpdate();                                        // 在单轴控制前先更新当前位姿
+            gimbal_cmd_send.gimbal_mode = GIMBAL_STORAGE_ORE_MODE2; // 对准矿仓
         }
         else if (rc_data[TEMP].key[KEY_PRESS].f && upper_fetch_data.action_step == 4) // 再次单击 F 键继续执行
         {
@@ -731,7 +811,7 @@ static void MouseKeySet()
             chassis_cmd_send.chassis_mode = CHASSIS_NORMAL;
             upper_cmd_send.stop_flag = 0;
             upper_cmd_send.upper_mode = UPPER_NO_MOVE;
-            gimbal_cmd_send.gimbal_mode = GIMBAL_FIX_ANGLE_MODE;    // 图传置位
+            gimbal_cmd_send.gimbal_mode = GIMBAL_FIX_ANGLE_MODE; // 图传置位
             CmdRecvUpdate();
         }
     }
@@ -750,7 +830,7 @@ static void MouseKeySet()
             // chassis_cmd_send.chassis_mode = CHASSIS_NORMAL;  // 在存放矿石后再修改底盘模式，用于微调车身状态
             upper_cmd_send.stop_flag = 0;
             upper_cmd_send.upper_mode = UPPER_NO_MOVE;
-            gimbal_cmd_send.gimbal_mode = GIMBAL_FIX_ANGLE_MODE;    // 图传置位
+            gimbal_cmd_send.gimbal_mode = GIMBAL_FIX_ANGLE_MODE; // 图传置位
             CmdRecvUpdate();
         }
     }
@@ -765,7 +845,7 @@ static void MouseKeySet()
         upper_cmd_send.ctrl_data.pitch = self_ctrl_data->pitch;
         upper_cmd_send.ctrl_data.roll = self_ctrl_data->roll;
 
-        upper_cmd_send.joint_data.yaw1 = self_ctrl_data->yaw1;     // 为 gimbal 更新当前的 yaw1 轴角度
+        upper_cmd_send.joint_data.yaw1 = self_ctrl_data->yaw1; // 为 gimbal 更新当前的 yaw1 轴角度
 
         if (rc_data[TEMP].key[KEY_PRESS_WITH_CTRL].x) // 退出模式
         {
@@ -784,6 +864,7 @@ static void MouseKeySet()
         chassis_cmd_send.pump_mode |= VALVE_T2;
     }
     // chassis_cmd_send.pump_mode = VALVE_ALL_CLOSE;  // 调试代码，关闭所有气路
+#endif // USE_FS
 }
 
 /**
@@ -801,6 +882,9 @@ static void EmergencyHandler()
 #endif
 #ifdef USE_VT13
     if (switch_is_C(rc_data[TEMP].rc.switch_mid)) // 还需添加重要应用和模块离线的判断
+#endif
+#ifdef USE_FS
+    if (switch_is_down(rc_data[TEMP].rc.switch_c))
 #endif
     {
         robot_state = ROBOT_STOP;
@@ -838,6 +922,10 @@ void RobotCMDTask()
 #ifdef USE_VT13
     if (rc_data[TEMP].rc.Custom_button_right_count % 2 == 1) // 自定义按键右按下奇数次为键鼠控制
 #endif
+
+#ifdef USE_FS
+    if (0)
+#endif
         MouseKeySet(); // 键鼠控制
     else
         RemoteControlSet(); // 遥控器控制
@@ -849,7 +937,7 @@ void RobotCMDTask()
     GimbalSendUpdate();
 
     ChassisSendUpdate();
-    
+
     if (upper_last_mode != upper_cmd_send.upper_mode)
     {
         CmdRecvUpdate();
